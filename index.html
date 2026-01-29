@@ -3,22 +3,22 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Warung Preisrechner</title>
+  <title>Warung Preisrechner (Excel-Modell)</title>
   <meta name="theme-color" content="#111827" />
   <style>
     :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
     body { margin: 0; background:#0b1220; color:#e5e7eb; }
     header { padding: 14px 16px; background:#111827; position: sticky; top:0; border-bottom:1px solid #1f2937;}
     h1 { font-size: 16px; margin:0; letter-spacing:.2px;}
+    .muted { color:#94a3b8; font-size:12px; }
     .tabs { display:flex; gap:8px; padding:10px 16px; background:#0b1220; position: sticky; top:52px; border-bottom:1px solid #1f2937; overflow:auto;}
     .tab { border:1px solid #1f2937; background:#0f172a; color:#e5e7eb; padding:8px 10px; border-radius:999px; font-size:13px; cursor:pointer; white-space:nowrap;}
     .tab.active { background:#2563eb; border-color:#2563eb; }
     main { padding: 14px 16px 90px; max-width: 820px; margin: 0 auto; }
     .card { background:#111827; border:1px solid #1f2937; border-radius:14px; padding:12px; margin: 12px 0; }
-    .row { display:grid; grid-template-columns: 1fr 170px; gap:10px; align-items:center; margin:10px 0; }
-    .row3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+    .row { display:grid; grid-template-columns: 1fr 190px; gap:10px; align-items:center; margin:10px 0; }
     label { font-size:13px; color:#cbd5e1; }
-    input, select, button, textarea {
+    input, select, button {
       width:100%; box-sizing:border-box;
       padding:10px 10px; border-radius:10px;
       border:1px solid #334155; background:#0b1220; color:#e5e7eb;
@@ -27,31 +27,21 @@
     button { background:#1f2937; cursor:pointer; }
     button.primary { background:#2563eb; border-color:#2563eb; }
     button.danger { background:#b91c1c; border-color:#b91c1c; }
-    .muted { color:#94a3b8; font-size:12px; }
+    .hr { height:1px; background:#1f2937; margin:12px 0; }
     .kpi { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
     .kpi .box { background:#0b1220; border:1px solid #1f2937; padding:10px; border-radius:12px; }
     .big { font-size:18px; font-weight:700; margin-top:2px;}
-    .pill { display:inline-block; padding:4px 8px; border-radius:999px; background:#0b1220; border:1px solid #1f2937; font-size:12px; color:#cbd5e1;}
     .footerbar { position:fixed; left:0; right:0; bottom:0; background:#111827; border-top:1px solid #1f2937; padding:10px 16px; display:flex; gap:10px; }
     .footerbar button { flex:1; }
-    .list { display:flex; flex-direction:column; gap:10px; }
-    .groupItem { background:#0b1220; border:1px solid #1f2937; border-radius:12px; padding:10px; }
-    .groupTop { display:flex; justify-content:space-between; gap:10px; align-items:center; }
-    .groupTop b { font-size:14px; }
-    .inline { display:flex; gap:8px; }
-    .inline > * { flex:1; }
-    .hr { height:1px; background:#1f2937; margin:12px 0; }
-    .ok { color:#34d399; }
   </style>
 </head>
 <body>
   <header>
-    <h1>Warung Preisrechner (offline)</h1>
-    <div class="muted">Fixkosten einzeln erfassen → Gruppen/Verluste → Mindestpreis berechnen</div>
+    <h1>Warung Preisrechner (Excel-Modell)</h1>
+    <div class="muted">Manuelle Auswahl: Minuman / Dus / Buah-Gemüse / Galon · Einstellungen bleiben gespeichert (JSON)</div>
   </header>
 
   <div class="tabs" id="tabs"></div>
-
   <main id="view"></main>
 
   <div class="footerbar">
@@ -62,45 +52,47 @@
 
 <script>
 (() => {
-  const STORAGE_KEY = "warung_pricing_settings_v1";
+  const STORAGE_KEY = "warung_pricing_excel_model_v1";
 
-  // --- Defaults (kannst du später 1:1 auf Excel-Felder umbauen)
+  // Defaults aus deinem Screenshot
   const DEFAULTS = {
     version: 1,
     currency: "IDR",
-    base: {
-      periode: "monat",
-      verkaufsmenge_monat: 2500,        // Stück oder Transaktionen/Monat
-      zielmarge_pct: 20,                // Marge vom Verkaufspreis
-      variable_kosten_pct_vom_vk: 3,    // z.B. payment/packaging als % vom Verkaufspreis
-      rundung_idr: 500                  // 0 = keine Rundung
+    lokasi: "Cibinong / Bogor",
+
+    // Asumsi Utama
+    asumsi: {
+      penjualan_unit_bulan: 2500,
+      porsi_biaya_tetap_dus: 0.35,     // Faktor
+      biaya_tetap_galon: 900,          // IDR / penjualan (manuell)
+      biaya_variabel_minuman: 100,     // IDR (manuell)
+      susut_minuman_pct: 2.0,
+      susut_dus_pct: 1.0,
+      susut_buah_pct: 15.0,
+      cuci_susut_galon: 300,           // IDR
+      biaya_antar_galon: 2000,         // IDR
+      round_idr: 500                   // optional
     },
+
+    // Biaya Tetap (bulanan)
     fixed_costs: {
-      miete: 1500000,
-      strom: 350000,
-      wasser: 150000,
-      internet: 250000,
-      transport: 500000,
-      sonstiges: 200000
-    },
-    product_groups: [
-      { id: "obst", name: "Obst", loss_pct: 8.0, active: true },
-      { id: "gemuese", name: "Gemüse", loss_pct: 6.0, active: true },
-      { id: "getraenke", name: "Getränke", loss_pct: 1.0, active: true },
-      { id: "andere", name: "Andere", loss_pct: 2.0, active: true }
-    ]
+      sewa_warung: 1500000,
+      tenaga_kerja_sendiri: 1500000,
+      listrik_air: 300000,
+      internet_qris: 150000,
+      transport: 400000,
+      lain_lain_kehilangan: 150000
+    }
   };
 
-  // --- State
   let state = load();
+  let activeTab = "setup";
 
   const TABS = [
-    { id: "fix", label: "1) Fixkosten" },
-    { id: "base", label: "2) Basis" },
-    { id: "groups", label: "3) Gruppen & Verluste" },
-    { id: "calc", label: "4) Rechner" }
+    { id: "setup", label: "1) Fixkosten" },
+    { id: "asumsi", label: "2) Asumsi Utama" },
+    { id: "calc", label: "3) Rechner" }
   ];
-  let activeTab = "fix";
 
   // --- Helpers
   function load() {
@@ -108,30 +100,17 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return structuredClone(DEFAULTS);
       const obj = JSON.parse(raw);
-      return mergeDefaults(structuredClone(DEFAULTS), obj);
-    } catch (e) {
-      return structuredClone(DEFAULTS);
-    }
+      return merge(structuredClone(DEFAULTS), obj);
+    } catch { return structuredClone(DEFAULTS); }
   }
 
-  function mergeDefaults(def, obj) {
-    // shallow + nested merge for our structure
+  function merge(def, obj) {
     if (!obj || typeof obj !== "object") return def;
     def.version = obj.version ?? def.version;
     def.currency = obj.currency ?? def.currency;
-
-    def.base = { ...def.base, ...(obj.base || {}) };
+    def.lokasi = obj.lokasi ?? def.lokasi;
+    def.asumsi = { ...def.asumsi, ...(obj.asumsi || {}) };
     def.fixed_costs = { ...def.fixed_costs, ...(obj.fixed_costs || {}) };
-
-    if (Array.isArray(obj.product_groups)) {
-      def.product_groups = obj.product_groups.map(g => ({
-        id: String(g.id ?? "").trim() || slugify(g.name ?? "gruppe"),
-        name: String(g.name ?? "Gruppe"),
-        loss_pct: num(g.loss_pct, 0),
-        active: g.active !== false
-      }));
-      if (def.product_groups.length === 0) def.product_groups = structuredClone(DEFAULTS.product_groups);
-    }
     return def;
   }
 
@@ -150,44 +129,57 @@
     return n.toLocaleString("id-ID");
   }
 
-  function sumFixedCosts() {
+  function sumFixed() {
     return Object.values(state.fixed_costs).reduce((a,b)=>a + num(b,0), 0);
   }
 
-  function fixedCostPerSale() {
-    const qty = Math.max(1, num(state.base.verkaufsmenge_monat, 1));
-    return sumFixedCosts() / qty;
+  // Excel-Logik aus Screenshot:
+  // Biaya tetap per unit (otomatis) = total_biaya_tetap / penjualan_unit_bulan
+  function fixedPerUnit() {
+    const units = Math.max(1, Math.floor(num(state.asumsi.penjualan_unit_bulan, 1)));
+    return sumFixed() / units;
+  }
+
+  // Biaya tetap per transaksi Dus (otomatis) = fixed_per_unit * porsi_faktor_dus
+  function fixedPerDusTx() {
+    return fixedPerUnit() * num(state.asumsi.porsi_biaya_tetap_dus, 0);
   }
 
   function roundIDR(x) {
-    const r = Math.max(0, num(state.base.rundung_idr, 0));
+    const r = Math.max(0, Math.floor(num(state.asumsi.round_idr, 0)));
     if (!r) return x;
     return Math.ceil(x / r) * r;
   }
 
-  function slugify(s) {
-    return String(s||"")
-      .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "")
-      .slice(0, 40) || "gruppe";
-  }
-
   function toast(msg) {
-    // minimal: show in title area
     const h1 = document.querySelector("h1");
     const old = h1.textContent;
     h1.textContent = msg;
     setTimeout(()=>{ h1.textContent = old; }, 900);
   }
 
-  // --- Rendering
+  // --- UI
   const tabsEl = document.getElementById("tabs");
   const viewEl = document.getElementById("view");
-  const btnSave = document.getElementById("btnSave");
-  const btnExport = document.getElementById("btnExport");
-  const btnImport = document.getElementById("btnImport");
+
+  document.getElementById("btnSave").onclick = save;
+
+  document.getElementById("btnExport").onclick = async () => {
+    const json = JSON.stringify(state, null, 2);
+    try { await navigator.clipboard.writeText(json); toast("JSON kopiert ✅"); }
+    catch { prompt("Kopiere JSON:", json); }
+  };
+
+  document.getElementById("btnImport").onclick = () => {
+    const txt = prompt("JSON einfügen (überschreibt Einstellungen):");
+    if (!txt) return;
+    try {
+      const obj = JSON.parse(txt);
+      state = merge(structuredClone(DEFAULTS), obj);
+      save();
+      render();
+    } catch { toast("Ungültiges JSON"); }
+  };
 
   function renderTabs() {
     tabsEl.innerHTML = "";
@@ -200,270 +192,222 @@
     });
   }
 
+  function card(title, html="") {
+    const d = document.createElement("div");
+    d.className = "card";
+    d.innerHTML = `<b>${title}</b><div style="margin-top:8px">${html}</div>`;
+    return d;
+  }
+
+  function rowInput(labelText, value, onChange, type="number", step="1") {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `
+      <label>${labelText}</label>
+      <input type="${type}" step="${step}" value="${value ?? ""}" />
+    `;
+    const inp = row.querySelector("input");
+    inp.oninput = () => onChange(inp.value);
+    return row;
+  }
+
+  function rowSelect(labelText, options, onChange) {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `<label>${labelText}</label><select></select>`;
+    const sel = row.querySelector("select");
+    options.forEach(o => {
+      const opt = document.createElement("option");
+      opt.value = o.value;
+      opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
+    sel.onchange = () => onChange(sel.value);
+    return { row, sel };
+  }
+
   function render() {
     renderTabs();
     viewEl.innerHTML = "";
-    if (activeTab === "fix") renderFix();
-    if (activeTab === "base") renderBase();
-    if (activeTab === "groups") renderGroups();
+    if (activeTab === "setup") renderSetup();
+    if (activeTab === "asumsi") renderAsumsi();
     if (activeTab === "calc") renderCalc();
   }
 
-  function renderFix() {
-    const card = elCard("Fixkosten (monatlich)", `
-      <div class="muted">Einzelabfrage wie im Excel: Miete, Strom, Wasser, ...</div>
-      <div class="hr"></div>
-    `);
+  function renderSetup() {
+    const c = card("Biaya Tetap (bulanan) – Einzelabfrage", `<div class="muted">Werte bleiben gespeichert. Total wird automatisch berechnet.</div><div class="hr"></div>`);
+    c.appendChild(rowInput("Sewa (warung) / IDR per bulan", state.fixed_costs.sewa_warung, v => { state.fixed_costs.sewa_warung = num(v,0); render(); }));
+    c.appendChild(rowInput("Tenaga kerja sendiri (kalkulasi) / IDR per bulan", state.fixed_costs.tenaga_kerja_sendiri, v => { state.fixed_costs.tenaga_kerja_sendiri = num(v,0); render(); }));
+    c.appendChild(rowInput("Listrik & air / IDR per bulan", state.fixed_costs.listrik_air, v => { state.fixed_costs.listrik_air = num(v,0); render(); }));
+    c.appendChild(rowInput("Internet / QRIS / IDR per bulan", state.fixed_costs.internet_qris, v => { state.fixed_costs.internet_qris = num(v,0); render(); }));
+    c.appendChild(rowInput("Transport (motor/bensin) / IDR per bulan", state.fixed_costs.transport, v => { state.fixed_costs.transport = num(v,0); render(); }));
+    c.appendChild(rowInput("Lain-lain / kehilangan / IDR per bulan", state.fixed_costs.lain_lain_kehilangan, v => { state.fixed_costs.lain_lain_kehilangan = num(v,0); render(); }));
 
-    const fields = [
-      ["miete", "Miete / Monat"],
-      ["strom", "Strom / Monat"],
-      ["wasser", "Wasser / Monat"],
-      ["internet", "Internet / Monat"],
-      ["transport", "Transport / Monat"],
-      ["sonstiges", "Sonstiges / Monat"]
-    ];
-
-    fields.forEach(([key, label]) => {
-      card.appendChild(rowInput(label, state.fixed_costs[key], (v) => {
-        state.fixed_costs[key] = num(v, 0);
-        render(); // update KPIs live
-      }, "number"));
-    });
-
-    const kpi = document.createElement("div");
-    kpi.className = "kpi";
-    kpi.innerHTML = `
+    const k = document.createElement("div");
+    k.className = "kpi";
+    k.innerHTML = `
       <div class="box">
-        <div class="muted">Fixkosten gesamt / Monat</div>
-        <div class="big">${moneyIDR(sumFixedCosts())} <span class="muted">${state.currency}</span></div>
+        <div class="muted">Total biaya tetap / bulan</div>
+        <div class="big">${moneyIDR(sumFixed())} <span class="muted">${state.currency}</span></div>
       </div>
       <div class="box">
-        <div class="muted">Fixkostenanteil pro Verkauf</div>
-        <div class="big">${moneyIDR(fixedCostPerSale())} <span class="muted">${state.currency}</span></div>
+        <div class="muted">Biaya tetap per unit (otomatis)</div>
+        <div class="big">${moneyIDR(fixedPerUnit())} <span class="muted">${state.currency}</span></div>
       </div>
     `;
-    card.appendChild(kpi);
-
-    viewEl.appendChild(card);
-    viewEl.appendChild(elCard("Hinweis", `
-      <div class="muted">
-        Wenn ihr im Excel weitere Fixkosten-Positionen habt (z.B. “Gaji/Personal”, “Sewa etalase”, “Izin”, …),
-        sag mir die Liste – ich erweitere die Felder 1:1.
-      </div>
-    `));
+    c.appendChild(k);
+    viewEl.appendChild(c);
   }
 
-  function renderBase() {
-    const card = elCard("Basis-Parameter", `<div class="muted">Diese Werte fließen in alle Produktberechnungen ein.</div><div class="hr"></div>`);
+  function renderAsumsi() {
+    const a = card("Asumsi Utama (aus Excel)", `<div class="muted">Diese Werte steuern die Logik wie im Screenshot.</div><div class="hr"></div>`);
 
-    card.appendChild(rowInput("Verkäufe / Monat (Stück oder Transaktionen)", state.base.verkaufsmenge_monat, (v)=> {
-      state.base.verkaufsmenge_monat = Math.max(1, Math.floor(num(v, 1)));
-      render();
-    }, "number"));
+    a.appendChild(rowInput("Penjualan (unit/bulan, total)", state.asumsi.penjualan_unit_bulan, v => { state.asumsi.penjualan_unit_bulan = Math.max(1, Math.floor(num(v,1))); render(); }));
+    a.appendChild(rowInput("Porsi biaya tetap untuk Dus (faktor)", state.asumsi.porsi_biaya_tetap_dus, v => { state.asumsi.porsi_biaya_tetap_dus = num(v,0); render(); }, "number", "0.01"));
+    a.appendChild(rowInput("Biaya tetap per Galon (IDR/penjualan)", state.asumsi.biaya_tetap_galon, v => { state.asumsi.biaya_tetap_galon = num(v,0); render(); }));
 
-    card.appendChild(rowInput("Zielmarge (%) vom Verkaufspreis", state.base.zielmarge_pct, (v)=> {
-      state.base.zielmarge_pct = clampPct(num(v, 0));
-      render();
-    }, "number"));
+    a.appendChild(rowInput("Biaya variabel minuman (IDR)", state.asumsi.biaya_variabel_minuman, v => { state.asumsi.biaya_variabel_minuman = num(v,0); render(); }));
+    a.appendChild(rowInput("Susut minuman (%)", state.asumsi.susut_minuman_pct, v => { state.asumsi.susut_minuman_pct = Math.max(0, num(v,0)); }, "number", "0.1"));
+    a.appendChild(rowInput("Susut Dus (%)", state.asumsi.susut_dus_pct, v => { state.asumsi.susut_dus_pct = Math.max(0, num(v,0)); }, "number", "0.1"));
+    a.appendChild(rowInput("Susut buah/gemüse (%)", state.asumsi.susut_buah_pct, v => { state.asumsi.susut_buah_pct = Math.max(0, num(v,0)); }, "number", "0.1"));
 
-    card.appendChild(rowInput("Variable Kosten (%) vom Verkaufspreis", state.base.variable_kosten_pct_vom_vk, (v)=> {
-      state.base.variable_kosten_pct_vom_vk = clampPct(num(v, 0));
-      render();
-    }, "number"));
+    a.appendChild(rowInput("Cuci / susut Galon (IDR)", state.asumsi.cuci_susut_galon, v => { state.asumsi.cuci_susut_galon = num(v,0); }));
+    a.appendChild(rowInput("Biaya antar Galon (IDR)", state.asumsi.biaya_antar_galon, v => { state.asumsi.biaya_antar_galon = num(v,0); }));
 
-    card.appendChild(rowInput("Rundung (IDR) z.B. 0 / 500 / 1000", state.base.rundung_idr, (v)=> {
-      state.base.rundung_idr = Math.max(0, Math.floor(num(v, 0)));
-      render();
-    }, "number"));
+    a.appendChild(rowInput("Rundung (IDR) 0 / 500 / 1000", state.asumsi.round_idr, v => { state.asumsi.round_idr = Math.max(0, Math.floor(num(v,0))); }));
 
-    const box = elCard("Live-Auswirkung", "");
-    box.innerHTML += `
-      <div class="kpi">
-        <div class="box">
-          <div class="muted">Fixkostenanteil pro Verkauf</div>
-          <div class="big">${moneyIDR(fixedCostPerSale())} <span class="muted">${state.currency}</span></div>
-        </div>
-        <div class="box">
-          <div class="muted">Marge + Variable (Summe)</div>
-          <div class="big">${(num(state.base.zielmarge_pct)+num(state.base.variable_kosten_pct_vom_vk)).toFixed(1)}% <span class="muted">vom VK</span></div>
-        </div>
+    const k = document.createElement("div");
+    k.className = "kpi";
+    k.innerHTML = `
+      <div class="box">
+        <div class="muted">Biaya tetap per unit (otomatis)</div>
+        <div class="big">${moneyIDR(fixedPerUnit())} ${state.currency}</div>
+        <div class="muted">= Total biaya tetap / Penjualan unit/bulan</div>
+      </div>
+      <div class="box">
+        <div class="muted">Biaya tetap per transaksi Dus (otomatis)</div>
+        <div class="big">${moneyIDR(fixedPerDusTx())} ${state.currency}</div>
+        <div class="muted">= per unit × faktor Dus</div>
       </div>
     `;
+    a.appendChild(document.createElement("div")).className = "hr";
+    a.appendChild(k);
 
-    viewEl.appendChild(card);
-    viewEl.appendChild(box);
-
-    function clampPct(x){ return Math.min(95, Math.max(0, x)); }
-  }
-
-  function renderGroups() {
-    const card = elCard("Produktgruppen & Verlust (%)", `
-      <div class="muted">Standard: Obst, Gemüse, Getränke, Andere. Später erweiterbar.</div>
-      <div class="hr"></div>
-    `);
-
-    const list = document.createElement("div");
-    list.className = "list";
-
-    const groups = state.product_groups || [];
-    groups.forEach((g, idx) => {
-      const item = document.createElement("div");
-      item.className = "groupItem";
-      item.innerHTML = `
-        <div class="groupTop">
-          <div>
-            <b>${escapeHtml(g.name)}</b>
-            <div class="muted">ID: <span class="pill">${escapeHtml(g.id)}</span> ${g.active ? '<span class="pill ok">aktiv</span>' : '<span class="pill">inaktiv</span>'}</div>
-          </div>
-          <div style="min-width:150px">
-            <label>Verlust %</label>
-            <input type="number" step="0.1" value="${num(g.loss_pct,0)}" />
-          </div>
-        </div>
-        <div class="inline" style="margin-top:10px">
-          <button data-act="toggle">${g.active ? "Deaktivieren" : "Aktivieren"}</button>
-          <button class="danger" data-act="del">Löschen</button>
-        </div>
-      `;
-
-      const inp = item.querySelector("input");
-      inp.oninput = () => {
-        state.product_groups[idx].loss_pct = Math.max(0, num(inp.value, 0));
-      };
-
-      item.querySelector('[data-act="toggle"]').onclick = () => {
-        state.product_groups[idx].active = !state.product_groups[idx].active;
-        render();
-      };
-
-      item.querySelector('[data-act="del"]').onclick = () => {
-        state.product_groups.splice(idx, 1);
-        render();
-      };
-
-      list.appendChild(item);
-    });
-
-    const add = document.createElement("div");
-    add.className = "card";
-    add.innerHTML = `
-      <div class="row3">
-        <div>
-          <label>Neue Gruppe (Name)</label>
-          <input id="newName" placeholder="z.B. Hygiene" />
-        </div>
-        <div>
-          <label>Verlust %</label>
-          <input id="newLoss" type="number" step="0.1" value="2" />
-        </div>
-        <div style="display:flex; align-items:end;">
-          <button class="primary" id="btnAdd">+ Hinzufügen</button>
-        </div>
-      </div>
-      <div class="muted" style="margin-top:8px">ID wird automatisch aus dem Namen gebildet.</div>
-    `;
-
-    add.querySelector("#btnAdd").onclick = () => {
-      const name = add.querySelector("#newName").value.trim();
-      const loss = Math.max(0, num(add.querySelector("#newLoss").value, 0));
-      if (!name) return toast("Name fehlt");
-      const id = slugify(name);
-      if (state.product_groups.some(x => x.id === id)) return toast("ID existiert schon");
-      state.product_groups.push({ id, name, loss_pct: loss, active: true });
-      add.querySelector("#newName").value = "";
-      render();
-    };
-
-    card.appendChild(list);
-    viewEl.appendChild(card);
-    viewEl.appendChild(add);
+    viewEl.appendChild(a);
   }
 
   function renderCalc() {
-    const activeGroups = (state.product_groups || []).filter(g => g.active);
-    const card = elCard("Produkt-Rechner (Mindestpreis)", `
-      <div class="muted">
-        Formel (robust): Mindestpreis = (EK + Verlust + Fixkostenanteil) / (1 − variable% − marge%)
-      </div>
+    const c = card("Rechner – manuelle Produkttyp Auswahl", `
+      <div class="muted">Gib EK ein, wähle Typ. Tool addiert: Susut + Fixkostenanteil + ggf. Zuschläge (Minuman/Galon).</div>
       <div class="hr"></div>
     `);
 
-    const form = document.createElement("div");
+    const types = [
+      { value: "minuman", label: "Minuman (Einzelverkauf)" },
+      { value: "dus", label: "Dus / Karton (Transaksi Dus)" },
+      { value: "buah", label: "Buah / Gemüse" },
+      { value: "galon", label: "Galon" }
+    ];
 
-    // Inputs
-    const groupRow = document.createElement("div");
-    groupRow.className = "row";
-    groupRow.innerHTML = `
-      <label>Produktgruppe</label>
-      <select id="grp"></select>
-    `;
-    const sel = groupRow.querySelector("select");
-    activeGroups.forEach(g => {
-      const opt = document.createElement("option");
-      opt.value = g.id;
-      opt.textContent = `${g.name} (Verlust ${g.loss_pct}%)`;
-      sel.appendChild(opt);
-    });
+    let selectedType = "minuman";
 
-    const ekRow = document.createElement("div");
-    ekRow.className = "row";
-    ekRow.innerHTML = `
-      <label>Einkaufspreis (EK)</label>
-      <input id="ek" type="number" step="1" placeholder="z.B. 3500" />
-    `;
+    const selWrap = rowSelect("Tipe Produk", types, v => { selectedType = v; updateHint(); });
+    c.appendChild(selWrap.row);
 
-    const marketRow = document.createElement("div");
-    marketRow.className = "row";
-    marketRow.innerHTML = `
-      <label>Optional: Marktpreis / Konkurrenz (VK)</label>
-      <input id="mk" type="number" step="1" placeholder="z.B. 5000" />
-    `;
+    const ekRow = rowInput("Harga beli / EK (IDR)", "", () => {}, "number", "1");
+    const ekInp = ekRow.querySelector("input");
+    c.appendChild(ekRow);
+
+    const out = card("Hasil", `<div class="muted">Klicke “Hitung”.</div>`);
+
+    const hint = document.createElement("div");
+    hint.className = "card";
+    hint.innerHTML = `<b>Regeln (aus Excel)</b><div class="muted" id="hintText" style="margin-top:8px"></div>`;
+    viewEl.appendChild(c);
+    viewEl.appendChild(hint);
 
     const btn = document.createElement("button");
     btn.className = "primary";
-    btn.textContent = "Berechnen";
+    btn.textContent = "Hitung";
+    btn.style.marginTop = "10px";
+    c.appendChild(btn);
 
-    const out = document.createElement("div");
-    out.className = "card";
-    out.innerHTML = `<div class="muted">Ergebnis erscheint hier.</div>`;
+    viewEl.appendChild(out);
+
+    function updateHint() {
+      const h = document.getElementById("hintText");
+      const fpUnit = fixedPerUnit();
+      const fpDus = fixedPerDusTx();
+      const galonFix = num(state.asumsi.biaya_tetap_galon, 0);
+      if (!h) return;
+
+      if (selectedType === "minuman") {
+        h.innerHTML =
+          `Susut: ${state.asumsi.susut_minuman_pct}% · Fix: ${moneyIDR(fpUnit)} · + Biaya variabel minuman: ${moneyIDR(state.asumsi.biaya_variabel_minuman)} IDR`;
+      } else if (selectedType === "dus") {
+        h.innerHTML =
+          `Susut: ${state.asumsi.susut_dus_pct}% · Fix per transaksi Dus: ${moneyIDR(fpDus)} (per unit × faktor Dus)`;
+      } else if (selectedType === "buah") {
+        h.innerHTML =
+          `Susut: ${state.asumsi.susut_buah_pct}% · Fix: ${moneyIDR(fpUnit)} (wie per unit)`;
+      } else if (selectedType === "galon") {
+        h.innerHTML =
+          `Fix per Galon (Input): ${moneyIDR(galonFix)} · + Cuci/susut: ${moneyIDR(state.asumsi.cuci_susut_galon)} · + Antar: ${moneyIDR(state.asumsi.biaya_antar_galon)}`;
+      }
+    }
+
+    updateHint();
 
     btn.onclick = () => {
-      const ek = Math.max(0, num(form.querySelector("#ek").value, 0));
-      const grpId = sel.value;
-      const grp = activeGroups.find(g => g.id === grpId) || activeGroups[0];
-      const lossPct = num(grp?.loss_pct, 0) / 100;
+      const ek = Math.max(0, num(ekInp.value, 0));
+      if (!ek) { out.innerHTML = `<div class="muted">Bitte EK eingeben.</div>`; return; }
 
-      const loss = ek * lossPct;
-      const fixPer = fixedCostPerSale();
-      const varPct = num(state.base.variable_kosten_pct_vom_vk, 0) / 100;
-      const marginPct = num(state.base.zielmarge_pct, 0) / 100;
+      const fpUnit = fixedPerUnit();
+      const fpDus = fixedPerDusTx();
+      const round = (x) => roundIDR(x);
 
-      const denom = 1 - varPct - marginPct;
-      if (denom <= 0.05) {
-        out.innerHTML = `<b>Fehler:</b> Variable% + Marge% ist zu hoch (≥ 95%).`;
-        return;
+      let susutPct = 0;
+      let fixed = 0;
+      let extra = 0;
+      let extraLabel = [];
+
+      if (selectedType === "minuman") {
+        susutPct = num(state.asumsi.susut_minuman_pct, 0) / 100;
+        fixed = fpUnit;
+        extra = num(state.asumsi.biaya_variabel_minuman, 0);
+        if (extra) extraLabel.push(`Biaya variabel minuman ${moneyIDR(extra)}`);
       }
 
-      const minPrice = (ek + loss + fixPer) / denom;
-      const suggested = roundIDR(minPrice);
-
-      const market = Math.max(0, num(form.querySelector("#mk").value, 0));
-      let marketInfo = "";
-      if (market > 0) {
-        const profit = market - (ek + loss + fixPer) - (market * varPct);
-        const profitPct = (profit / market) * 100;
-        marketInfo = `
-          <div class="hr"></div>
-          <div class="muted">Bei Marktpreis</div>
-          <div><b>${moneyIDR(market)} ${state.currency}</b> → Gewinn ca. <b>${moneyIDR(profit)} ${state.currency}</b> (${profitPct.toFixed(1)}%)</div>
-        `;
+      if (selectedType === "dus") {
+        susutPct = num(state.asumsi.susut_dus_pct, 0) / 100;
+        fixed = fpDus;
       }
+
+      if (selectedType === "buah") {
+        susutPct = num(state.asumsi.susut_buah_pct, 0) / 100;
+        fixed = fpUnit;
+      }
+
+      if (selectedType === "galon") {
+        susutPct = 0; // im Screenshot gibt es Galon extra Kosten statt %
+        fixed = num(state.asumsi.biaya_tetap_galon, 0);
+        const cuci = num(state.asumsi.cuci_susut_galon, 0);
+        const antar = num(state.asumsi.biaya_antar_galon, 0);
+        extra = cuci + antar;
+        if (cuci) extraLabel.push(`Cuci/Susut ${moneyIDR(cuci)}`);
+        if (antar) extraLabel.push(`Antar ${moneyIDR(antar)}`);
+      }
+
+      const susut = ek * susutPct;
+
+      // Mindestpreis im Sinne eures Excel-Screens: EK + Susut + Fix + Zuschläge
+      const minPrice = ek + susut + fixed + extra;
+      const suggested = round(minPrice);
 
       out.innerHTML = `
         <div class="kpi">
           <div class="box">
-            <div class="muted">Mindestpreis (theoretisch)</div>
+            <div class="muted">Mindestpreis</div>
             <div class="big">${moneyIDR(minPrice)} <span class="muted">${state.currency}</span></div>
           </div>
           <div class="box">
@@ -471,78 +415,17 @@
             <div class="big">${moneyIDR(suggested)} <span class="muted">${state.currency}</span></div>
           </div>
         </div>
-
         <div class="hr"></div>
         <div class="muted">Aufschlüsselung</div>
-        <div>EK: <b>${moneyIDR(ek)}</b> · Verlust (${(lossPct*100).toFixed(1)}%): <b>${moneyIDR(loss)}</b> · Fix/Verkauf: <b>${moneyIDR(fixPer)}</b></div>
-        <div class="muted">Variable: ${(varPct*100).toFixed(1)}% · Zielmarge: ${(marginPct*100).toFixed(1)}%</div>
-        ${marketInfo}
+        <div>EK: <b>${moneyIDR(ek)}</b></div>
+        <div>Susut: <b>${moneyIDR(susut)}</b> (${(susutPct*100).toFixed(2)}%)</div>
+        <div>Fix-Anteil: <b>${moneyIDR(fixed)}</b></div>
+        <div>Zuschläge: <b>${moneyIDR(extra)}</b> ${extraLabel.length ? `<span class="muted">(${extraLabel.join(" + ")})</span>` : ""}</div>
       `;
     };
-
-    form.appendChild(groupRow);
-    form.appendChild(ekRow);
-    form.appendChild(marketRow);
-    form.appendChild(btn);
-
-    card.appendChild(form);
-    viewEl.appendChild(card);
-    viewEl.appendChild(out);
   }
 
-  // --- Components
-  function elCard(title, html) {
-    const d = document.createElement("div");
-    d.className = "card";
-    d.innerHTML = `<b>${title}</b><div style="margin-top:8px">${html || ""}</div>`;
-    return d;
-  }
-
-  function rowInput(labelText, value, onChange, type="number") {
-    const row = document.createElement("div");
-    row.className = "row";
-    row.innerHTML = `
-      <label>${labelText}</label>
-      <input type="${type}" value="${num(value,0)}" />
-    `;
-    const inp = row.querySelector("input");
-    inp.oninput = () => onChange(inp.value);
-    return row;
-  }
-
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, m => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-    }[m]));
-  }
-
-  // --- Export / Import
-  btnSave.onclick = () => save();
-
-  btnExport.onclick = async () => {
-    const json = JSON.stringify(state, null, 2);
-    try {
-      await navigator.clipboard.writeText(json);
-      toast("JSON kopiert ✅");
-    } catch {
-      prompt("Kopiere JSON:", json);
-    }
-  };
-
-  btnImport.onclick = () => {
-    const txt = prompt("JSON einfügen (überschreibt Einstellungen):");
-    if (!txt) return;
-    try {
-      const obj = JSON.parse(txt);
-      state = mergeDefaults(structuredClone(DEFAULTS), obj);
-      save();
-      render();
-    } catch {
-      toast("Ungültiges JSON");
-    }
-  };
-
-  // Init
+  // init
   render();
 
 })();
