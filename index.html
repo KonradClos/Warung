@@ -47,6 +47,10 @@
       background: linear-gradient(180deg, rgba(77,163,255,0.25), rgba(77,163,255,0.08));
       border-color: rgba(77,163,255,0.35);
     }
+    button.danger{
+      border-color: rgba(255,107,107,0.45);
+      background: rgba(255,107,107,0.10);
+    }
     .tabs{
       display:flex; gap:10px; margin: 14px 0;
       overflow-x:auto; padding-bottom: 4px; scrollbar-width: none;
@@ -116,6 +120,44 @@
     .small{ font-size:12px; color: var(--muted); }
     .checkrow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .checkrow input[type="checkbox"]{ width:18px; height:18px; }
+
+    /* Fix cost list */
+    .list{
+      border:1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.03);
+      overflow:hidden;
+    }
+    .listhead{
+      display:grid;
+      grid-template-columns: 1.4fr 1fr 90px;
+      gap:10px;
+      padding:10px 12px;
+      border-bottom:1px solid var(--border);
+      color: var(--muted);
+      font-size:12px;
+    }
+    .listrow{
+      display:grid;
+      grid-template-columns: 1.4fr 1fr 90px;
+      gap:10px;
+      padding:10px 12px;
+      border-bottom:1px solid rgba(255,255,255,0.06);
+      align-items:center;
+    }
+    .listrow:last-child{ border-bottom:none; }
+    .btnsm{
+      padding:8px 10px;
+      border-radius: 12px;
+      width: 90px;
+      justify-self:end;
+    }
+    @media (max-width: 820px){
+      .listhead, .listrow{
+        grid-template-columns: 1fr;
+      }
+      .btnsm{ width: 100%; justify-self:stretch; }
+    }
   </style>
 </head>
 <body>
@@ -150,6 +192,42 @@
         <div class="col-12">
           <div class="small" id="fixExpl">
             Basis% is calculated from real fixed costs: Basis% = FixCostsTotal / TotalPurchase. Then we apply a smooth curve per item and clamp min/max.
+          </div>
+        </div>
+
+        <!-- NEW: Fix cost calculation window -->
+        <div class="col-12">
+          <div class="kpi" style="gap:10px;">
+            <div class="t" id="fixWindowTitle">Fixed costs calculator (items)</div>
+
+            <div class="checkrow">
+              <input type="checkbox" id="autoFixTotal" />
+              <label for="autoFixTotal" id="lblAutoFixTotal" style="margin:0;color:var(--text)">Use items sum as “Fixed costs total”</label>
+              <span class="small" id="autoFixTotalNote">(recommended)</span>
+            </div>
+
+            <div class="list" id="fixList">
+              <div class="listhead">
+                <div id="fixColName">Name</div>
+                <div id="fixColAmount">Amount (IDR / month)</div>
+                <div></div>
+              </div>
+              <div id="fixRows"></div>
+            </div>
+
+            <div class="row">
+              <button class="primary" id="addFixRowBtn">+ Add item</button>
+              <button id="fillFixExamplesBtn">Examples</button>
+              <button class="danger" id="clearFixRowsBtn">Clear items</button>
+            </div>
+
+            <div class="row" style="align-items:center;">
+              <div class="kpi" style="min-height:auto;">
+                <div class="v mono" id="fixItemsSumOut">—</div>
+                <div class="t" id="fixItemsSumOutT">Items sum (IDR / month)</div>
+              </div>
+              <div class="small" id="fixItemsHint">This sum can feed Fixed costs total automatically.</div>
+            </div>
           </div>
         </div>
 
@@ -334,7 +412,7 @@
   </div>
 
 <script>
-/** ---------- Helpers: formatting & parsing (IDR with thousand dot) ---------- */
+/** ---------- Helpers ---------- */
 function formatIDRInt(n){
   if (!isFinite(n)) return "";
   const s = Math.round(n).toString();
@@ -353,7 +431,7 @@ function parseNumberLoose(str){
 function pctToUnit(pct){ return pct / 100; }
 function unitToPct(unit){ return unit * 100; }
 
-/** ---------- Dynamic Deckungskosten% (smooth curve) ---------- */
+/** ---------- Dynamic Deckungskosten% ---------- */
 function dynamicDeckPctUnit(purchase, basisUnit, ref, factor, minUnit, maxUnit){
   if (!(purchase > 0) || !(ref > 0) || !isFinite(factor) || !isFinite(basisUnit)) return NaN;
   const raw = basisUnit * (1 + factor * Math.log(purchase / ref + 1));
@@ -362,9 +440,9 @@ function dynamicDeckPctUnit(purchase, basisUnit, ref, factor, minUnit, maxUnit){
 
 /** ---------- Storage ---------- */
 const KEYS = {
-  fix: "pricing_tool_fix_v3",
-  assum: "pricing_tool_assum_v3",
-  lang: "pricing_tool_lang_v3",
+  fix: "pricing_tool_fix_v4",
+  assum: "pricing_tool_assum_v4",
+  lang: "pricing_tool_lang_v4",
 };
 function saveJSON(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
 function loadJSON(key){
@@ -372,12 +450,19 @@ function loadJSON(key){
   catch(e){ return null; }
 }
 
-/** ---------- UI: language (minimal, keep prior texts mostly) ---------- */
+/** ---------- i18n (only additions for window labels) ---------- */
 const I18N = {
   en: {
     subtitle: "Dynamic deckungskosten% based on purchase price and real fixed costs.",
     langLabel:"Language", tabFix:"Fix Costs", tabAssum:"Assumptions", tabCalc:"Calculator", reset:"Reset",
     fixExpl:"Basis% is calculated from real fixed costs: Basis% = FixCostsTotal / TotalPurchase. Then we apply a smooth curve per item and clamp min/max.",
+    fixWindowTitle:"Fixed costs calculator (items)",
+    lblAutoFixTotal:"Use items sum as “Fixed costs total”", autoFixTotalNote:"(recommended)",
+    fixColName:"Name", fixColAmount:"Amount (IDR / month)",
+    fixItemsSumOutT:"Items sum (IDR / month)",
+    fixItemsHint:"This sum can feed Fixed costs total automatically.",
+    addItem:"+ Add item", examples:"Examples", clearItems:"Clear items",
+
     lblFixTotal:"Fixed costs total (IDR / month)", hintFixTotal:"Example: rent + salary + electricity etc (monthly).",
     lblPurchaseTotal:"Total purchase (IDR / month)", hintPurchaseTotal:"Sum of all COGS purchases for the month.",
     lblAutoBasis:"Auto-calculate Basis% from totals", autoBasisNote:"(recommended)",
@@ -399,11 +484,20 @@ const I18N = {
     outMarginPctT:"Target margin %", outMinPriceT:"Minimum selling price",
     calcNote:"Formula: Minimum Price = Purchase / (1 - (Deck% + Loss% + Tax% + Margin%)).",
     footerNote:"Tip: Tap/click a number field to edit raw digits; it formats with dots when you leave the field.",
+    remove:"Remove",
+    namePlaceholder:"e.g. Rent",
   },
   id: {
     subtitle: "% biaya tetap dinamis berdasarkan harga beli & biaya tetap nyata.",
     langLabel:"Bahasa", tabFix:"Biaya Tetap", tabAssum:"Asumsi", tabCalc:"Kalkulator", reset:"Reset",
     fixExpl:"Basis% dihitung dari biaya tetap nyata: Basis% = Total Biaya Tetap / Total Pembelian. Lalu pakai kurva halus per item + batas min/maks.",
+    fixWindowTitle:"Kalkulator biaya tetap (item)",
+    lblAutoFixTotal:"Pakai total item sebagai “Total biaya tetap”", autoFixTotalNote:"(disarankan)",
+    fixColName:"Nama", fixColAmount:"Jumlah (IDR / bulan)",
+    fixItemsSumOutT:"Total item (IDR / bulan)",
+    fixItemsHint:"Total ini bisa otomatis mengisi Total biaya tetap.",
+    addItem:"+ Tambah item", examples:"Contoh", clearItems:"Hapus item",
+
     lblFixTotal:"Total biaya tetap (IDR / bulan)", hintFixTotal:"Contoh: sewa + gaji + listrik (bulanan).",
     lblPurchaseTotal:"Total pembelian/HPP (IDR / bulan)", hintPurchaseTotal:"Jumlah seluruh pembelian barang (HPP) per bulan.",
     lblAutoBasis:"Hitung Basis% otomatis dari total", autoBasisNote:"(disarankan)",
@@ -425,6 +519,8 @@ const I18N = {
     outMarginPctT:"% Margin target", outMinPriceT:"Harga jual minimum",
     calcNote:"Rumus: Harga Minimum = Harga Beli / (1 - (Deck% + Susut% + Pajak% + Margin%)).",
     footerNote:"Tip: Klik/ketuk angka untuk edit; akan diformat pakai titik saat keluar dari field.",
+    remove:"Hapus",
+    namePlaceholder:"mis. Sewa",
   }
 };
 
@@ -433,9 +529,12 @@ const el = (id)=>document.getElementById(id);
 const pages = { fix: el("pageFix"), assum: el("pageAssum"), calc: el("pageCalc") };
 
 /** ---------- Numeric input behavior ---------- */
-function attachNumericBehavior(){
-  const numInputs = document.querySelectorAll("input.num");
+function attachNumericBehavior(root=document){
+  const numInputs = root.querySelectorAll("input.num");
   numInputs.forEach(inp=>{
+    if (inp.dataset.bound === "1") return;
+    inp.dataset.bound = "1";
+
     inp.addEventListener("focus", ()=>{
       const n = parseNumberLoose(inp.value);
       if (isFinite(n)) {
@@ -447,7 +546,10 @@ function attachNumericBehavior(){
       const id = inp.id;
       const n = parseNumberLoose(inp.value);
       if (!isFinite(n)) { inp.value=""; updateAll(); return; }
-      const isIDR = ["fixTotal","purchaseTotal","refPrice","testPurchase","purchasePrice","competitorPrice"].includes(id);
+
+      const isIDR = ["fixTotal","purchaseTotal","refPrice","testPurchase","purchasePrice","competitorPrice"].includes(id)
+        || inp.dataset.type === "idr";
+
       if (isIDR){
         inp.value = formatIDRInt(n);
       } else {
@@ -470,12 +572,143 @@ document.querySelectorAll(".tab").forEach(btn=>{
   });
 });
 
+/** ---------- Fix cost items model ---------- */
+let fixItems = []; // {id, name, amount}
+
+function uid(){
+  return Math.random().toString(16).slice(2) + Date.now().toString(16);
+}
+
+function defaultFixItems(){
+  return [
+    { id: uid(), name: "Rent / Sewa", amount: 2000000 },
+    { id: uid(), name: "Electricity / Listrik", amount: 400000 },
+    { id: uid(), name: "Internet", amount: 300000 },
+    { id: uid(), name: "Staff / Gaji", amount: 2000000 },
+  ];
+}
+
+function renderFixRows(){
+  const rows = el("fixRows");
+  rows.innerHTML = "";
+
+  const lang = (loadJSON(KEYS.lang)?.lang) || "en";
+  const t = I18N[lang] || I18N.en;
+
+  fixItems.forEach(item=>{
+    const row = document.createElement("div");
+    row.className = "listrow";
+    row.dataset.id = item.id;
+
+    const name = document.createElement("input");
+    name.className = "field";
+    name.value = item.name || "";
+    name.placeholder = t.namePlaceholder;
+
+    const amount = document.createElement("input");
+    amount.className = "field num";
+    amount.dataset.type = "idr";
+    amount.inputMode = "numeric";
+    amount.value = isFinite(item.amount) ? formatIDRInt(item.amount) : "";
+
+    const del = document.createElement("button");
+    del.className = "btnsm danger";
+    del.textContent = t.remove;
+
+    name.addEventListener("input", ()=>{
+      item.name = name.value;
+      // no need updateAll
+    });
+
+    amount.addEventListener("blur", ()=>{
+      item.amount = parseNumberLoose(amount.value);
+      updateAll();
+    });
+    amount.addEventListener("input", ()=>{
+      // allow live recalc while typing (optional)
+      item.amount = parseNumberLoose(amount.value);
+      updateAll(true);
+    });
+
+    del.addEventListener("click", ()=>{
+      fixItems = fixItems.filter(x=>x.id !== item.id);
+      renderFixRows();
+      updateAll();
+    });
+
+    row.appendChild(name);
+    row.appendChild(amount);
+    row.appendChild(del);
+    rows.appendChild(row);
+  });
+
+  attachNumericBehavior(rows);
+}
+
+function sumFixItems(){
+  let s = 0;
+  for (const it of fixItems){
+    const a = Number(it.amount);
+    if (isFinite(a) && a > 0) s += a;
+  }
+  return s;
+}
+
 /** ---------- Save/Load ---------- */
 function showToast(id){
   const t = el(id);
   t.classList.add("show");
   setTimeout(()=>t.classList.remove("show"), 1200);
 }
+
+function readFixInputs(){
+  return {
+    fixTotal: parseNumberLoose(el("fixTotal").value),
+    purchaseTotal: parseNumberLoose(el("purchaseTotal").value),
+    autoBasis: !!el("autoBasis").checked,
+    basisPct: parseNumberLoose(el("basisPct").value),
+    refPrice: parseNumberLoose(el("refPrice").value),
+    progFactor: parseNumberLoose(el("progFactor").value),
+    minPct: parseNumberLoose(el("minPct").value),
+    maxPct: parseNumberLoose(el("maxPct").value),
+    autoFixTotal: !!el("autoFixTotal").checked,
+    fixItems: fixItems
+  };
+}
+function writeFixInputs(d){
+  if (isFinite(d.fixTotal)) el("fixTotal").value = formatIDRInt(d.fixTotal);
+  if (isFinite(d.purchaseTotal)) el("purchaseTotal").value = formatIDRInt(d.purchaseTotal);
+  el("autoBasis").checked = !!d.autoBasis;
+  if (isFinite(d.basisPct)) el("basisPct").value = String(d.basisPct).replace(".", ",");
+  if (isFinite(d.refPrice)) el("refPrice").value = formatIDRInt(d.refPrice);
+  if (isFinite(d.progFactor)) el("progFactor").value = String(d.progFactor).replace(".", ",");
+  if (isFinite(d.minPct)) el("minPct").value = String(d.minPct).replace(".", ",");
+  if (isFinite(d.maxPct)) el("maxPct").value = String(d.maxPct).replace(".", ",");
+  el("autoFixTotal").checked = !!d.autoFixTotal;
+
+  if (Array.isArray(d.fixItems) && d.fixItems.length){
+    fixItems = d.fixItems.map(x=>({
+      id: x.id || uid(),
+      name: String(x.name || ""),
+      amount: parseNumberLoose(x.amount)
+    }));
+  }
+  renderFixRows();
+}
+
+function readAssumInputs(){
+  return {
+    lossPct: parseNumberLoose(el("lossPct").value),
+    marginPct: parseNumberLoose(el("marginPct").value),
+    taxPct: parseNumberLoose(el("taxPct").value)
+  };
+}
+function writeAssumInputs(d){
+  if (isFinite(d.lossPct)) el("lossPct").value = String(d.lossPct).replace(".", ",");
+  if (isFinite(d.marginPct)) el("marginPct").value = String(d.marginPct).replace(".", ",");
+  if (isFinite(d.taxPct)) el("taxPct").value = String(d.taxPct).replace(".", ",");
+}
+
 el("saveFixBtn").addEventListener("click", ()=>{
   saveJSON(KEYS.fix, readFixInputs());
   showToast("toastFix");
@@ -502,44 +735,14 @@ el("resetBtn").addEventListener("click", ()=>{
   updateAll();
 });
 
-/** ---------- Read/Write input state ---------- */
-function readFixInputs(){
-  return {
-    fixTotal: parseNumberLoose(el("fixTotal").value),
-    purchaseTotal: parseNumberLoose(el("purchaseTotal").value),
-    autoBasis: !!el("autoBasis").checked,
-    basisPct: parseNumberLoose(el("basisPct").value),
-    refPrice: parseNumberLoose(el("refPrice").value),
-    progFactor: parseNumberLoose(el("progFactor").value),
-    minPct: parseNumberLoose(el("minPct").value),
-    maxPct: parseNumberLoose(el("maxPct").value)
-  };
-}
-function writeFixInputs(d){
-  if (isFinite(d.fixTotal)) el("fixTotal").value = formatIDRInt(d.fixTotal);
-  if (isFinite(d.purchaseTotal)) el("purchaseTotal").value = formatIDRInt(d.purchaseTotal);
-  el("autoBasis").checked = !!d.autoBasis;
-  if (isFinite(d.basisPct)) el("basisPct").value = String(d.basisPct).replace(".", ",");
-  if (isFinite(d.refPrice)) el("refPrice").value = formatIDRInt(d.refPrice);
-  if (isFinite(d.progFactor)) el("progFactor").value = String(d.progFactor).replace(".", ",");
-  if (isFinite(d.minPct)) el("minPct").value = String(d.minPct).replace(".", ",");
-  if (isFinite(d.maxPct)) el("maxPct").value = String(d.maxPct).replace(".", ",");
-}
-function readAssumInputs(){
-  return {
-    lossPct: parseNumberLoose(el("lossPct").value),
-    marginPct: parseNumberLoose(el("marginPct").value),
-    taxPct: parseNumberLoose(el("taxPct").value)
-  };
-}
-function writeAssumInputs(d){
-  if (isFinite(d.lossPct)) el("lossPct").value = String(d.lossPct).replace(".", ",");
-  if (isFinite(d.marginPct)) el("marginPct").value = String(d.marginPct).replace(".", ",");
-  if (isFinite(d.taxPct)) el("taxPct").value = String(d.taxPct).replace(".", ",");
-}
-
 /** ---------- Defaults ---------- */
 function setDefaults(){
+  // fix items
+  fixItems = defaultFixItems();
+  renderFixRows();
+
+  el("autoFixTotal").checked = true;
+
   el("fixTotal").value = "5.000.000";
   el("purchaseTotal").value = "50.000.000";
   el("autoBasis").checked = true;
@@ -559,19 +762,36 @@ function setDefaults(){
   el("competitorPrice").value = "";
 }
 
-/** ---------- Basis calculation (from real fixed costs) ---------- */
+/** ---------- Basis calculation ---------- */
 function calcBasisUnit(fixTotal, purchaseTotal, manualBasisPct, autoBasis){
   const canAuto = autoBasis && (fixTotal > 0) && (purchaseTotal > 0);
-  if (canAuto){
-    return fixTotal / purchaseTotal; // unit (e.g. 0.10)
-  }
-  // fallback manual
+  if (canAuto) return fixTotal / purchaseTotal;
   return pctToUnit(manualBasisPct || 0);
 }
 
 /** ---------- Main calc ---------- */
 function updateAll(){
-  const f = readFixInputs();
+  // items sum & optionally feed fixTotal
+  const itemsSum = sumFixItems();
+  el("fixItemsSumOut").textContent = formatIDRInt(itemsSum) + " IDR";
+
+  if (el("autoFixTotal").checked){
+    // only overwrite if sum > 0 (prevents annoying zero overwrite)
+    if (itemsSum > 0){
+      el("fixTotal").value = formatIDRInt(itemsSum);
+    }
+  }
+
+  const f = {
+    fixTotal: parseNumberLoose(el("fixTotal").value),
+    purchaseTotal: parseNumberLoose(el("purchaseTotal").value),
+    autoBasis: el("autoBasis").checked,
+    basisPct: parseNumberLoose(el("basisPct").value),
+    refPrice: parseNumberLoose(el("refPrice").value),
+    progFactor: parseNumberLoose(el("progFactor").value),
+    minPct: parseNumberLoose(el("minPct").value),
+    maxPct: parseNumberLoose(el("maxPct").value)
+  };
 
   const basisUnit = calcBasisUnit(f.fixTotal, f.purchaseTotal, f.basisPct, f.autoBasis);
   const basisPctCalc = isFinite(basisUnit) ? unitToPct(basisUnit) : NaN;
@@ -588,10 +808,9 @@ function updateAll(){
     : "—";
 
   // assumptions
-  const a = readAssumInputs();
-  const lossU = pctToUnit(a.lossPct || 0);
-  const marginU = pctToUnit(a.marginPct || 0);
-  const taxU = pctToUnit(a.taxPct || 0);
+  const lossU = pctToUnit(parseNumberLoose(el("lossPct").value) || 0);
+  const marginU = pctToUnit(parseNumberLoose(el("marginPct").value) || 0);
+  const taxU = pctToUnit(parseNumberLoose(el("taxPct").value) || 0);
 
   // calculator purchase
   const purchase = parseNumberLoose(el("purchasePrice").value);
@@ -621,6 +840,19 @@ function applyLang(lang){
   el("resetBtn").textContent = t.reset;
 
   el("fixExpl").textContent = t.fixExpl;
+
+  // new window labels
+  el("fixWindowTitle").textContent = t.fixWindowTitle;
+  el("lblAutoFixTotal").textContent = t.lblAutoFixTotal;
+  el("autoFixTotalNote").textContent = t.autoFixTotalNote;
+  el("fixColName").textContent = t.fixColName;
+  el("fixColAmount").textContent = t.fixColAmount;
+  el("fixItemsSumOutT").textContent = t.fixItemsSumOutT;
+  el("fixItemsHint").textContent = t.fixItemsHint;
+  el("addFixRowBtn").textContent = t.addItem;
+  el("fillFixExamplesBtn").textContent = t.examples;
+  el("clearFixRowsBtn").textContent = t.clearItems;
+
   el("lblFixTotal").textContent = t.lblFixTotal;
   el("hintFixTotal").textContent = t.hintFixTotal;
   el("lblPurchaseTotal").textContent = t.lblPurchaseTotal;
@@ -677,7 +909,32 @@ function applyLang(lang){
   el("footerNote").textContent = t.footerNote;
 
   saveJSON(KEYS.lang, {lang});
+
+  // re-render rows for translated placeholders/buttons
+  renderFixRows();
 }
+
+/** ---------- Buttons for fix items ---------- */
+el("addFixRowBtn").addEventListener("click", ()=>{
+  fixItems.push({ id: uid(), name: "", amount: NaN });
+  renderFixRows();
+  updateAll();
+});
+
+el("fillFixExamplesBtn").addEventListener("click", ()=>{
+  fixItems = defaultFixItems();
+  renderFixRows();
+  updateAll();
+});
+
+el("clearFixRowsBtn").addEventListener("click", ()=>{
+  fixItems = [];
+  renderFixRows();
+  updateAll();
+});
+
+el("autoFixTotal").addEventListener("change", ()=> updateAll());
+el("autoBasis").addEventListener("change", ()=> updateAll());
 
 /** ---------- Init ---------- */
 (function init(){
@@ -693,21 +950,25 @@ function applyLang(lang){
     });
   });
 
-  // load saved
+  // load language
   const langSaved = loadJSON(KEYS.lang);
   const lang = (langSaved && langSaved.lang) ? langSaved.lang : "en";
   el("langSelect").value = lang;
-  applyLang(lang);
 
+  // defaults
   setDefaults();
+
+  // load saved
   const fixSaved = loadJSON(KEYS.fix);
   const assSaved = loadJSON(KEYS.assum);
   if (fixSaved) writeFixInputs(fixSaved);
   if (assSaved) writeAssumInputs(assSaved);
 
+  // apply lang after rows exist
+  applyLang(lang);
+
   // events
   el("langSelect").addEventListener("change", (e)=> applyLang(e.target.value));
-  el("autoBasis").addEventListener("change", ()=> updateAll());
 
   updateAll();
 })();
