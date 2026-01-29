@@ -7,34 +7,69 @@
   <meta name="theme-color" content="#111827" />
   <style>
     :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-    body { margin:0; background:#0b1220; color:#e5e7eb; }
-    header { padding:14px 16px; background:#111827; border-bottom:1px solid #1f2937; position: sticky; top:0; z-index: 5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:#0b1220; color:#e5e7eb; overflow-x: hidden; }
+
+    header {
+      padding:14px 16px;
+      background:#111827;
+      border-bottom:1px solid #1f2937;
+      position: sticky; top:0; z-index: 10;
+    }
     h1 { margin:0; font-size:16px; }
     .muted { color:#94a3b8; font-size:12px; }
-    .topbar { display:flex; gap:10px; align-items:center; justify-content:space-between; margin-top:8px; }
+
+    .topbar { display:flex; gap:10px; align-items:center; justify-content:space-between; margin-top:8px; flex-wrap: wrap; }
     .pill { display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; border:1px solid #1f2937; background:#0f172a; }
     .pill select { border:none; background:transparent; color:#e5e7eb; padding:0; width:auto; }
-    .tabs { display:flex; gap:8px; padding:10px 16px; border-bottom:1px solid #1f2937; overflow:auto; position: sticky; top:74px; background:#0b1220; z-index: 4; }
-    .tab { padding:8px 12px; border-radius:999px; border:1px solid #1f2937; background:#0f172a; color:#e5e7eb; cursor:pointer; white-space: nowrap; }
+
+    .tabs {
+      display:flex; gap:8px; padding:10px 16px;
+      border-bottom:1px solid #1f2937; overflow:auto;
+      position: sticky; top:82px; background:#0b1220; z-index: 9;
+    }
+    .tab {
+      padding:8px 12px; border-radius:999px;
+      border:1px solid #1f2937; background:#0f172a; color:#e5e7eb;
+      cursor:pointer; white-space: nowrap;
+    }
     .tab.active { background:#2563eb; border-color:#2563eb; }
-    main { padding:16px 16px 90px; max-width:820px; margin:auto; }
-    .card { background:#111827; border:1px solid #1f2937; border-radius:14px; padding:12px; margin-bottom:12px; }
-    .row { display:grid; grid-template-columns:1fr 220px; gap:10px; align-items:center; margin:10px 0; }
+
+    main { padding:16px 16px 90px; max-width:900px; margin:auto; }
+
+    .card { background:#111827; border:1px solid #1f2937; border-radius:14px; padding:12px; margin-bottom:12px; overflow:hidden; }
+    .row { display:grid; grid-template-columns: 1fr 260px; gap:12px; align-items:center; margin:12px 0; }
     label { font-size:13px; color:#cbd5e1; }
+
     input, select, button {
-      width:100%; padding:10px; border-radius:10px;
-      border:1px solid #334155; background:#0b1220; color:#e5e7eb;
-      font-size:14px; box-sizing: border-box;
+      width:100%;
+      padding:10px;
+      border-radius:10px;
+      border:1px solid #334155;
+      background:#0b1220;
+      color:#e5e7eb;
+      font-size:14px;
     }
     button { background:#1f2937; cursor:pointer; }
     button.primary { background:#2563eb; border-color:#2563eb; }
-    .kpi { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+
+    .kpi { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:12px; }
     .kpi .box { background:#0b1220; border:1px solid #1f2937; padding:10px; border-radius:12px; }
     .big { font-size:18px; font-weight:700; }
-    .footer { position:fixed; bottom:0; left:0; right:0; background:#111827; border-top:1px solid #1f2937; padding:10px 16px; display:flex; gap:10px; z-index: 6; }
-    .footer button { flex:1; }
     .hr { height:1px; background:#1f2937; margin:12px 0; }
-    .hint { margin-top:8px; }
+
+    .footer {
+      position:fixed; bottom:0; left:0; right:0;
+      background:#111827; border-top:1px solid #1f2937;
+      padding:10px 16px; display:flex; gap:10px; z-index: 11;
+    }
+    .footer button { flex:1; }
+
+    /* Mobile: stack rows, no horizontal scroll */
+    @media (max-width: 600px) {
+      .tabs { top: 98px; }
+      .row { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 
@@ -64,28 +99,18 @@
 
 <script>
 (() => {
-  const KEY = "warung_pricing_excel_model_v2";
+  const KEY = "warung_pricing_excel_model_v3";
 
-  // --- i18n
+  // ---------- i18n ----------
   const I18N = {
     en: {
       title: "Warung Pricing",
       subtitle: "Excel-based model · manual product type · works offline",
       langLabel: "Language",
-      tabs: {
-        fix: "1) Fixed Costs",
-        asumsi: "2) Assumptions",
-        calc: "3) Calculator"
-      },
+      tabs: { fix: "1) Fixed Costs", asumsi: "2) Assumptions", calc: "3) Calculator" },
       buttons: { export: "JSON Export", import: "JSON Import", save: "Save" },
       saved: "Saved ✅",
-      cards: {
-        fixed: "Monthly Fixed Costs",
-        asumsi: "Main Assumptions (Excel)",
-        calc: "Calculator (Manual Type)",
-        result: "Result",
-        breakdown: "Breakdown"
-      },
+      cards: { fixed: "Monthly Fixed Costs", asumsi: "Main Assumptions (Excel)", calc: "Calculator (Manual Type)", breakdown: "Breakdown" },
       labels: {
         sewa: "Rent (warung) / month",
         tenaga: "Own labor (calculation) / month",
@@ -101,6 +126,7 @@
         susutMinuman: "Shrinkage beverage (%)",
         susutDus: "Shrinkage Dus (%)",
         susutBuah: "Shrinkage fruit/veg (%)",
+        susutInstant: "Shrinkage instant food (%)",
         cuciGalon: "Wash/shrink Galon (IDR)",
         antarGalon: "Delivery Galon (IDR)",
         round: "Rounding (IDR) 0 / 500 / 1000",
@@ -117,16 +143,10 @@
         minuman: "Beverage (single sale)",
         dus: "Dus / Carton (Dus transaction)",
         buah: "Fruit / Vegetables",
+        instant: "Instant food (Tryfood/Indomie)",
         galon: "Galon"
       },
-      calcHint: {
-        minuman: (sPct, fix, extra) => `Shrinkage: ${sPct}% · Fixed: ${fix} · + Variable beverage: ${extra}`,
-        dus: (sPct, fixDus) => `Shrinkage: ${sPct}% · Fixed per Dus transaction: ${fixDus}`,
-        buah: (sPct, fix) => `Shrinkage: ${sPct}% · Fixed: ${fix}`,
-        galon: (fix, cuci, antar) => `Fixed Galon: ${fix} · + Wash: ${cuci} · + Delivery: ${antar}`
-      },
-      jsonPromptExport: "Copy JSON:",
-      jsonPromptImport: "Paste JSON (overwrites settings):",
+      calcBtn: "Calculate",
       enterEK: "Please enter EK."
     },
 
@@ -134,20 +154,10 @@
       title: "Kalkulator Harga Warung",
       subtitle: "Model Excel · pilih tipe manual · bisa offline",
       langLabel: "Bahasa",
-      tabs: {
-        fix: "1) Biaya Tetap",
-        asumsi: "2) Asumsi",
-        calc: "3) Kalkulator"
-      },
+      tabs: { fix: "1) Biaya Tetap", asumsi: "2) Asumsi", calc: "3) Kalkulator" },
       buttons: { export: "Export JSON", import: "Import JSON", save: "Simpan" },
       saved: "Tersimpan ✅",
-      cards: {
-        fixed: "Biaya Tetap (bulanan)",
-        asumsi: "Asumsi Utama (Excel)",
-        calc: "Kalkulator (Pilih Tipe Manual)",
-        result: "Hasil",
-        breakdown: "Rincian"
-      },
+      cards: { fixed: "Biaya Tetap (bulanan)", asumsi: "Asumsi Utama (Excel)", calc: "Kalkulator (Pilih Tipe Manual)", breakdown: "Rincian" },
       labels: {
         sewa: "Sewa (warung) / bulan",
         tenaga: "Tenaga kerja sendiri (kalkulasi) / bulan",
@@ -163,6 +173,7 @@
         susutMinuman: "Susut minuman (%)",
         susutDus: "Susut Dus (%)",
         susutBuah: "Susut buah/sayur (%)",
+        susutInstant: "Susut makanan instan (%)",
         cuciGalon: "Cuci / susut Galon (IDR)",
         antarGalon: "Biaya antar Galon (IDR)",
         round: "Rounding (IDR) 0 / 500 / 1000",
@@ -179,21 +190,15 @@
         minuman: "Minuman (ecer)",
         dus: "Dus / Karton (transaksi Dus)",
         buah: "Buah / Sayur",
+        instant: "Makanan instan (Tryfood/Indomie)",
         galon: "Galon"
       },
-      calcHint: {
-        minuman: (sPct, fix, extra) => `Susut: ${sPct}% · Biaya tetap: ${fix} · + Biaya variabel minuman: ${extra}`,
-        dus: (sPct, fixDus) => `Susut: ${sPct}% · Biaya tetap per transaksi Dus: ${fixDus}`,
-        buah: (sPct, fix) => `Susut: ${sPct}% · Biaya tetap: ${fix}`,
-        galon: (fix, cuci, antar) => `Biaya tetap Galon: ${fix} · + Cuci: ${cuci} · + Antar: ${antar}`
-      },
-      jsonPromptExport: "Salin JSON:",
-      jsonPromptImport: "Tempel JSON (menimpa setting):",
+      calcBtn: "Hitung",
       enterEK: "Mohon isi EK."
     }
   };
 
-  // --- Defaults from your sheet screenshot
+  // ---------- Defaults (based on your sheet screenshot) ----------
   const DEFAULT = {
     lang: "id",
     currency: "IDR",
@@ -206,6 +211,7 @@
       susut_minuman_pct: 2.0,
       susut_dus_pct: 1.0,
       susut_buah_pct: 15.0,
+      susut_instant_pct: 2.0,      // NEW
       cuci_susut_galon: 300,
       biaya_antar_galon: 2000,
       round_idr: 500
@@ -220,24 +226,20 @@
     }
   };
 
-  // --- State
   let state = load();
   let tab = "fix";
 
-  const TABS = [
-    {id:"fix", labelKey:"fix"},
-    {id:"asumsi", labelKey:"asumsi"},
-    {id:"calc", labelKey:"calc"}
-  ];
+  const tabsEl = document.getElementById("tabs");
+  const viewEl = document.getElementById("view");
+  const langSel = document.getElementById("langSel");
 
-  // --- Helpers
+  function t(){ return I18N[state.lang] || I18N.en; }
+
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
       if (!raw) return structuredClone(DEFAULT);
       const obj = JSON.parse(raw);
-
-      // Merge (keep future-proof)
       const merged = structuredClone(DEFAULT);
       merged.lang = obj.lang || merged.lang;
       merged.currency = obj.currency || merged.currency;
@@ -250,82 +252,47 @@
     }
   }
 
-  function save(showToast=true) {
+  function save(showToast=true){
     localStorage.setItem(KEY, JSON.stringify(state, null, 2));
     if (showToast) toast(t().saved);
   }
 
-  function t() {
-    return I18N[state.lang] || I18N.en;
+  function toast(msg){
+    const title = document.getElementById("title");
+    const old = title.textContent;
+    title.textContent = msg;
+    setTimeout(()=>title.textContent=old, 900);
   }
 
-  function moneyIDR(x) {
-    const n = Math.round(x);
-    return n.toLocaleString("id-ID");
+  // IDR formatting (thousand dot)
+  function fmtIDR(n){
+    const x = Math.round(Number(n) || 0);
+    return x.toLocaleString("id-ID"); // uses dot thousands
   }
-
-  function numStrictDigits(str) {
-    // Keep only digits (for IDR)
-    return String(str || "").replace(/[^\d]/g, "");
-  }
-
-  function numLoose(v, fallback=0) {
+  function digitsOnly(s){ return String(s||"").replace(/[^\d]/g,""); }
+  function num(v, fallback=0){
     const x = Number(String(v).replace(",", "."));
     return Number.isFinite(x) ? x : fallback;
   }
 
-  function sumFixed() {
-    return Object.values(state.fixed).reduce((a,b)=>a + numLoose(b,0), 0);
+  function sumFixed(){
+    return Object.values(state.fixed).reduce((a,b)=>a + (Number(b)||0), 0);
   }
-
-  function fixedPerUnit() {
-    const units = Math.max(1, Math.floor(numLoose(state.asumsi.penjualan_unit_bulan, 1)));
-    return sumFixed() / units;
+  function fixedPerUnit(){
+    const units = Math.max(1, Math.floor(Number(state.asumsi.penjualan_unit_bulan)||1));
+    return sumFixed()/units;
   }
-
-  function fixedPerDusTx() {
-    return fixedPerUnit() * numLoose(state.asumsi.faktor_dus, 0);
+  function fixedPerDusTx(){
+    return fixedPerUnit() * (Number(state.asumsi.faktor_dus)||0);
   }
-
-  function roundIDR(x) {
-    const r = Math.max(0, Math.floor(numLoose(state.asumsi.round_idr, 0)));
+  function roundIDR(x){
+    const r = Math.max(0, Math.floor(Number(state.asumsi.round_idr)||0));
     if (!r) return x;
-    return Math.ceil(x / r) * r;
+    return Math.ceil(x/r)*r;
   }
 
-  function toast(msg) {
-    const title = document.getElementById("title");
-    const old = title.textContent;
-    title.textContent = msg;
-    setTimeout(()=> title.textContent = old, 900);
-  }
-
-  // --- Robust "overwrite on desktop + mobile"
-  function enableAutoSelect(input) {
-    // Focus select (works on mobile)
-    input.addEventListener("focus", () => {
-      try { input.select(); } catch {}
-      // Some desktop browsers need a micro-delay
-      setTimeout(() => { try { input.select(); } catch {} }, 0);
-    });
-
-    // Click select (desktop often sets caret otherwise)
-    input.addEventListener("click", () => {
-      try { input.select(); } catch {}
-    });
-
-    // Pointer down: if already focused, still select
-    input.addEventListener("pointerdown", () => {
-      setTimeout(() => { try { input.select(); } catch {} }, 0);
-    });
-  }
-
-  // --- UI Render
-  const tabsEl = document.getElementById("tabs");
-  const viewEl = document.getElementById("view");
-  const langSel = document.getElementById("langSel");
-
-  function renderHeader() {
+  // ---------- Rendering ----------
+  function renderHeader(){
     document.getElementById("title").textContent = t().title;
     document.getElementById("subtitle").textContent = `${t().subtitle} · ${state.lokasi}`;
     document.getElementById("langLabel").textContent = t().langLabel;
@@ -337,180 +304,163 @@
     langSel.value = state.lang;
   }
 
-  function renderTabs() {
+  function renderTabs(){
     tabsEl.innerHTML = "";
-    TABS.forEach(x => {
+    const defs = [
+      {id:"fix", label: t().tabs.fix},
+      {id:"asumsi", label: t().tabs.asumsi},
+      {id:"calc", label: t().tabs.calc}
+    ];
+    defs.forEach(d=>{
       const b = document.createElement("button");
-      b.className = "tab" + (tab === x.id ? " active" : "");
-      b.textContent = t().tabs[x.labelKey];
-      b.onclick = () => { tab = x.id; render(); };
+      b.className = "tab" + (tab===d.id ? " active" : "");
+      b.textContent = d.label;
+      b.onclick = ()=>{ tab=d.id; render(); };
       tabsEl.appendChild(b);
     });
   }
 
-  function card(title, html="") {
+  function card(title, subtitle=""){
     const d = document.createElement("div");
     d.className = "card";
-    d.innerHTML = `<b>${title}</b>${html ? `<div class="hint muted">${html}</div>` : ""}`;
+    d.innerHTML = `<b>${title}</b>${subtitle?`<div class="muted" style="margin-top:6px">${subtitle}</div>`:""}`;
     return d;
   }
 
-  function kpiPair(leftLabel, leftValue, rightLabel, rightValue) {
+  function kpiPair(leftLabel, leftValue, rightLabel, rightValue){
     const k = document.createElement("div");
     k.className = "kpi";
     k.innerHTML = `
-      <div class="box">
-        <div class="muted">${leftLabel}</div>
-        <div class="big">${leftValue}</div>
-      </div>
-      <div class="box">
-        <div class="muted">${rightLabel}</div>
-        <div class="big">${rightValue}</div>
-      </div>
+      <div class="box"><div class="muted">${leftLabel}</div><div class="big">${leftValue}</div></div>
+      <div class="box"><div class="muted">${rightLabel}</div><div class="big">${rightValue}</div></div>
     `;
     return k;
   }
 
-  // Input row: IDR (digits only) or PCT (decimal)
-  function rowInput({label, value, kind="idr", onChange}) {
+  // --- Input builders (NO rerender on keystroke; format on blur)
+  function rowIDR(label, getValue, setValue){
     const row = document.createElement("div");
     row.className = "row";
 
-    const isPct = kind === "pct";
-    const input = document.createElement("input");
+    const lab = document.createElement("label");
+    lab.textContent = label;
 
-    // Type + keyboard
-    if (isPct) {
-      input.type = "number";
-      input.inputMode = "decimal";
-      input.step = "0.1";
-      input.min = "0";
-      input.value = String(numLoose(value, 0));
-    } else {
-      input.type = "text";
-      input.inputMode = "numeric";
-      input.pattern = "[0-9]*";
-      input.value = String(Math.floor(numLoose(value, 0)));
-    }
+    const inp = document.createElement("input");
+    inp.type = "text";
+    inp.inputMode = "numeric";
+    inp.pattern = "[0-9]*";
+    inp.value = fmtIDR(getValue());
 
-    enableAutoSelect(input);
+    // focus: show raw digits + select (desktop + mobile)
+    inp.addEventListener("focus", ()=>{
+      inp.value = digitsOnly(inp.value);
+      inp.select();
+    });
+    inp.addEventListener("click", ()=> inp.select());
+    inp.addEventListener("pointerdown", ()=> setTimeout(()=>{ try{inp.select();}catch{} },0));
 
-    // Behavior
-    input.addEventListener("input", () => {
-      if (isPct) {
-        onChange(Math.max(0, numLoose(input.value, 0)));
-      } else {
-        const cleaned = numStrictDigits(input.value);
-        if (cleaned !== input.value) input.value = cleaned;
-        onChange(Math.max(0, Math.floor(numLoose(cleaned, 0))));
-      }
-      // live update without forcing save
+    // input: keep only digits, allow 0 and multi-digits
+    inp.addEventListener("input", ()=>{
+      const cleaned = digitsOnly(inp.value);
+      if (cleaned !== inp.value) inp.value = cleaned;
+      // do NOT re-render here
+    });
+
+    // blur: store numeric + format with thousand dots
+    inp.addEventListener("blur", ()=>{
+      const n = Number(digitsOnly(inp.value) || "0");
+      setValue(n);
+      inp.value = fmtIDR(n);
+      // update KPIs live without full rerender? simplest: rerender current tab
       render(false);
     });
 
-    const labelEl = document.createElement("label");
-    labelEl.textContent = label;
-
-    const right = document.createElement("div");
-    right.appendChild(input);
-
-    // Show formatted IDR below field (nice)
-    if (!isPct) {
-      const fmt = document.createElement("div");
-      fmt.className = "muted";
-      fmt.style.marginTop = "6px";
-      fmt.textContent = `${moneyIDR(numLoose(value,0))} ${state.currency}`;
-      right.appendChild(fmt);
-    }
-
-    row.appendChild(labelEl);
-    row.appendChild(right);
+    row.appendChild(lab);
+    row.appendChild(inp);
     return row;
   }
 
-  function renderFix() {
+  function rowPCT(label, getValue, setValue){
+    const row = document.createElement("div");
+    row.className = "row";
+
+    const lab = document.createElement("label");
+    lab.textContent = label;
+
+    const inp = document.createElement("input");
+    inp.type = "number";
+    inp.inputMode = "decimal";
+    inp.step = "0.1";
+    inp.min = "0";
+    inp.value = String(getValue());
+
+    inp.addEventListener("focus", ()=> inp.select());
+    inp.addEventListener("click", ()=> inp.select());
+    inp.addEventListener("pointerdown", ()=> setTimeout(()=>{ try{inp.select();}catch{} },0));
+
+    // on input: do not rerender
+    inp.addEventListener("input", ()=>{});
+
+    inp.addEventListener("blur", ()=>{
+      const v = Math.max(0, num(inp.value, 0));
+      setValue(v);
+      inp.value = String(v);
+      render(false);
+    });
+
+    row.appendChild(lab);
+    row.appendChild(inp);
+    return row;
+  }
+
+  function renderFix(){
     const c = card(t().cards.fixed);
 
-    c.appendChild(rowInput({ label: t().labels.sewa, value: state.fixed.sewa_warung,
-      onChange: v => state.fixed.sewa_warung = v
-    }));
-    c.appendChild(rowInput({ label: t().labels.tenaga, value: state.fixed.tenaga_kerja_sendiri,
-      onChange: v => state.fixed.tenaga_kerja_sendiri = v
-    }));
-    c.appendChild(rowInput({ label: t().labels.listrik, value: state.fixed.listrik_air,
-      onChange: v => state.fixed.listrik_air = v
-    }));
-    c.appendChild(rowInput({ label: t().labels.internet, value: state.fixed.internet_qris,
-      onChange: v => state.fixed.internet_qris = v
-    }));
-    c.appendChild(rowInput({ label: t().labels.transport, value: state.fixed.transport,
-      onChange: v => state.fixed.transport = v
-    }));
-    c.appendChild(rowInput({ label: t().labels.lain, value: state.fixed.lain_lain_kehilangan,
-      onChange: v => state.fixed.lain_lain_kehilangan = v
-    }));
+    c.appendChild(rowIDR(t().labels.sewa, ()=>state.fixed.sewa_warung, v=>state.fixed.sewa_warung=v));
+    c.appendChild(rowIDR(t().labels.tenaga, ()=>state.fixed.tenaga_kerja_sendiri, v=>state.fixed.tenaga_kerja_sendiri=v));
+    c.appendChild(rowIDR(t().labels.listrik, ()=>state.fixed.listrik_air, v=>state.fixed.listrik_air=v));
+    c.appendChild(rowIDR(t().labels.internet, ()=>state.fixed.internet_qris, v=>state.fixed.internet_qris=v));
+    c.appendChild(rowIDR(t().labels.transport, ()=>state.fixed.transport, v=>state.fixed.transport=v));
+    c.appendChild(rowIDR(t().labels.lain, ()=>state.fixed.lain_lain_kehilangan, v=>state.fixed.lain_lain_kehilangan=v));
 
     c.appendChild(kpiPair(
-      t().kpis.totalFixed,
-      `${moneyIDR(sumFixed())} ${state.currency}`,
-      t().kpis.fixedPerUnit,
-      `${moneyIDR(fixedPerUnit())} ${state.currency}`
+      t().kpis.totalFixed, `${fmtIDR(sumFixed())} ${state.currency}`,
+      t().kpis.fixedPerUnit, `${fmtIDR(fixedPerUnit())} ${state.currency}`
     ));
 
     viewEl.appendChild(c);
   }
 
-  function renderAsumsi() {
+  function renderAsumsi(){
     const c = card(t().cards.asumsi);
 
-    c.appendChild(rowInput({ label: t().labels.penjualan, value: state.asumsi.penjualan_unit_bulan,
-      onChange: v => state.asumsi.penjualan_unit_bulan = Math.max(1, Math.floor(v))
-    }));
-    c.appendChild(rowInput({ label: t().labels.faktorDus, value: state.asumsi.faktor_dus, kind: "pct",
-      onChange: v => state.asumsi.faktor_dus = v
-    }));
-    c.appendChild(rowInput({ label: t().labels.tetapGalon, value: state.asumsi.biaya_tetap_galon,
-      onChange: v => state.asumsi.biaya_tetap_galon = v
-    }));
-    c.appendChild(rowInput({ label: t().labels.varMinuman, value: state.asumsi.biaya_variabel_minuman,
-      onChange: v => state.asumsi.biaya_variabel_minuman = v
-    }));
+    c.appendChild(rowIDR(t().labels.penjualan, ()=>state.asumsi.penjualan_unit_bulan, v=>state.asumsi.penjualan_unit_bulan=Math.max(1, v)));
+    // faktor dus is decimal (not percent in your sheet; it's a factor like 0.35)
+    c.appendChild(rowPCT(t().labels.faktorDus, ()=>state.asumsi.faktor_dus, v=>state.asumsi.faktor_dus=v));
 
-    c.appendChild(rowInput({ label: t().labels.susutMinuman, value: state.asumsi.susut_minuman_pct, kind: "pct",
-      onChange: v => state.asumsi.susut_minuman_pct = v
-    }));
-    c.appendChild(rowInput({ label: t().labels.susutDus, value: state.asumsi.susut_dus_pct, kind: "pct",
-      onChange: v => state.asumsi.susut_dus_pct = v
-    }));
-    c.appendChild(rowInput({ label: t().labels.susutBuah, value: state.asumsi.susut_buah_pct, kind: "pct",
-      onChange: v => state.asumsi.susut_buah_pct = v
-    }));
+    c.appendChild(rowIDR(t().labels.tetapGalon, ()=>state.asumsi.biaya_tetap_galon, v=>state.asumsi.biaya_tetap_galon=v));
+    c.appendChild(rowIDR(t().labels.varMinuman, ()=>state.asumsi.biaya_variabel_minuman, v=>state.asumsi.biaya_variabel_minuman=v));
 
-    c.appendChild(rowInput({ label: t().labels.cuciGalon, value: state.asumsi.cuci_susut_galon,
-      onChange: v => state.asumsi.cuci_susut_galon = v
-    }));
-    c.appendChild(rowInput({ label: t().labels.antarGalon, value: state.asumsi.biaya_antar_galon,
-      onChange: v => state.asumsi.biaya_antar_galon = v
-    }));
-    c.appendChild(rowInput({ label: t().labels.round, value: state.asumsi.round_idr,
-      onChange: v => state.asumsi.round_idr = v
-    }));
+    c.appendChild(rowPCT(t().labels.susutMinuman, ()=>state.asumsi.susut_minuman_pct, v=>state.asumsi.susut_minuman_pct=v));
+    c.appendChild(rowPCT(t().labels.susutDus, ()=>state.asumsi.susut_dus_pct, v=>state.asumsi.susut_dus_pct=v));
+    c.appendChild(rowPCT(t().labels.susutBuah, ()=>state.asumsi.susut_buah_pct, v=>state.asumsi.susut_buah_pct=v));
+    c.appendChild(rowPCT(t().labels.susutInstant, ()=>state.asumsi.susut_instant_pct, v=>state.asumsi.susut_instant_pct=v)); // NEW
+
+    c.appendChild(rowIDR(t().labels.cuciGalon, ()=>state.asumsi.cuci_susut_galon, v=>state.asumsi.cuci_susut_galon=v));
+    c.appendChild(rowIDR(t().labels.antarGalon, ()=>state.asumsi.biaya_antar_galon, v=>state.asumsi.biaya_antar_galon=v));
+
+    c.appendChild(rowIDR(t().labels.round, ()=>state.asumsi.round_idr, v=>state.asumsi.round_idr=v));
 
     c.appendChild(kpiPair(
-      t().kpis.fixedPerUnit,
-      `${moneyIDR(fixedPerUnit())} ${state.currency}`,
-      t().kpis.fixedPerDus,
-      `${moneyIDR(fixedPerDusTx())} ${state.currency}`
+      t().kpis.fixedPerUnit, `${fmtIDR(fixedPerUnit())} ${state.currency}`,
+      t().kpis.fixedPerDus, `${fmtIDR(fixedPerDusTx())} ${state.currency}`
     ));
 
     viewEl.appendChild(c);
   }
 
-  function renderCalc() {
-    const c = card(t().cards.calc, state.lang === "id"
-      ? "Isi EK → pilih tipe → hitung minimum price."
-      : "Enter EK → choose type → calculate minimum price."
-    );
+  function renderCalc(){
+    const c = card(t().cards.calc);
 
     const typeRow = document.createElement("div");
     typeRow.className = "row";
@@ -522,100 +472,51 @@
       <option value="minuman">${t().types.minuman}</option>
       <option value="dus">${t().types.dus}</option>
       <option value="buah">${t().types.buah}</option>
+      <option value="instant">${t().types.instant}</option>
       <option value="galon">${t().types.galon}</option>
     `;
-
     typeRow.appendChild(typeLabel);
     typeRow.appendChild(typeSel);
 
-    // EK input
     const ekRow = document.createElement("div");
     ekRow.className = "row";
     const ekLabel = document.createElement("label");
     ekLabel.textContent = t().labels.ek;
 
-    const ekWrap = document.createElement("div");
     const ekInp = document.createElement("input");
     ekInp.type = "text";
     ekInp.inputMode = "numeric";
     ekInp.pattern = "[0-9]*";
+    ekInp.value = "";
     ekInp.placeholder = "0";
-    enableAutoSelect(ekInp);
-    ekInp.addEventListener("input", () => {
-      const cleaned = numStrictDigits(ekInp.value);
+
+    ekInp.addEventListener("focus", ()=>{
+      ekInp.value = digitsOnly(ekInp.value);
+      ekInp.select();
+    });
+    ekInp.addEventListener("input", ()=>{
+      const cleaned = digitsOnly(ekInp.value);
       if (cleaned !== ekInp.value) ekInp.value = cleaned;
     });
-
-    ekWrap.appendChild(ekInp);
-    const ekFmt = document.createElement("div");
-    ekFmt.className = "muted";
-    ekFmt.style.marginTop = "6px";
-    ekFmt.textContent = `0 ${state.currency}`;
-    ekWrap.appendChild(ekFmt);
+    ekInp.addEventListener("blur", ()=>{
+      const n = Number(digitsOnly(ekInp.value)||"0");
+      ekInp.value = n ? fmtIDR(n) : "";
+    });
 
     ekRow.appendChild(ekLabel);
-    ekRow.appendChild(ekWrap);
+    ekRow.appendChild(ekInp);
 
-    // Hint
-    const hint = document.createElement("div");
-    hint.className = "card";
-    hint.innerHTML = `<b>${t().cards.breakdown}</b><div class="muted" id="hintText" style="margin-top:8px"></div>`;
-
-    // Button
     const btn = document.createElement("button");
     btn.className = "primary";
-    btn.textContent = (state.lang === "id") ? "Hitung" : "Calculate";
-    btn.style.marginTop = "10px";
+    btn.textContent = t().calcBtn;
 
-    // Output
     const out = document.createElement("div");
     out.className = "card";
-    out.innerHTML = `<div class="muted">${t().cards.result}</div>`;
-
-    function updateHint() {
-      const type = typeSel.value;
-      const h = hint.querySelector("#hintText");
-
-      if (type === "minuman") {
-        h.textContent = t().calcHint.minuman(
-          state.asumsi.susut_minuman_pct,
-          `${moneyIDR(fixedPerUnit())} ${state.currency}`,
-          `${moneyIDR(state.asumsi.biaya_variabel_minuman)} ${state.currency}`
-        );
-      } else if (type === "dus") {
-        h.textContent = t().calcHint.dus(
-          state.asumsi.susut_dus_pct,
-          `${moneyIDR(fixedPerDusTx())} ${state.currency}`
-        );
-      } else if (type === "buah") {
-        h.textContent = t().calcHint.buah(
-          state.asumsi.susut_buah_pct,
-          `${moneyIDR(fixedPerUnit())} ${state.currency}`
-        );
-      } else {
-        h.textContent = t().calcHint.galon(
-          `${moneyIDR(state.asumsi.biaya_tetap_galon)} ${state.currency}`,
-          `${moneyIDR(state.asumsi.cuci_susut_galon)} ${state.currency}`,
-          `${moneyIDR(state.asumsi.biaya_antar_galon)} ${state.currency}`
-        );
-      }
-    }
-
-    typeSel.addEventListener("change", () => {
-      updateHint();
-    });
-
-    // live EK formatting
-    ekInp.addEventListener("input", () => {
-      ekFmt.textContent = `${moneyIDR(numLoose(ekInp.value,0))} ${state.currency}`;
-    });
+    out.innerHTML = `<div class="muted">${t().cards.breakdown}</div>`;
 
     btn.onclick = () => {
-      const EK = Math.max(0, Math.floor(numLoose(ekInp.value, 0)));
-      if (!EK) {
-        out.innerHTML = `<div class="muted">${t().enterEK}</div>`;
-        return;
-      }
+      const EK = Number(digitsOnly(ekInp.value)||"0");
+      if (!EK) { out.innerHTML = `<div class="muted">${t().enterEK}</div>`; return; }
 
       const type = typeSel.value;
 
@@ -624,22 +525,22 @@
       let extra = 0;
 
       if (type === "minuman") {
-        susutPct = numLoose(state.asumsi.susut_minuman_pct, 0) / 100;
+        susutPct = (Number(state.asumsi.susut_minuman_pct)||0) / 100;
         fixed = fixedPerUnit();
-        extra = numLoose(state.asumsi.biaya_variabel_minuman, 0);
-      }
-      if (type === "dus") {
-        susutPct = numLoose(state.asumsi.susut_dus_pct, 0) / 100;
+        extra = Number(state.asumsi.biaya_variabel_minuman)||0;
+      } else if (type === "dus") {
+        susutPct = (Number(state.asumsi.susut_dus_pct)||0) / 100;
         fixed = fixedPerDusTx();
-      }
-      if (type === "buah") {
-        susutPct = numLoose(state.asumsi.susut_buah_pct, 0) / 100;
+      } else if (type === "buah") {
+        susutPct = (Number(state.asumsi.susut_buah_pct)||0) / 100;
         fixed = fixedPerUnit();
-      }
-      if (type === "galon") {
-        susutPct = 0; // in your sheet Galon uses fixed + wash + delivery
-        fixed = numLoose(state.asumsi.biaya_tetap_galon, 0);
-        extra = numLoose(state.asumsi.cuci_susut_galon, 0) + numLoose(state.asumsi.biaya_antar_galon, 0);
+      } else if (type === "instant") {
+        susutPct = (Number(state.asumsi.susut_instant_pct)||0) / 100;
+        fixed = fixedPerUnit();
+      } else if (type === "galon") {
+        susutPct = 0;
+        fixed = Number(state.asumsi.biaya_tetap_galon)||0;
+        extra = (Number(state.asumsi.cuci_susut_galon)||0) + (Number(state.asumsi.biaya_antar_galon)||0);
       }
 
       const susut = EK * susutPct;
@@ -649,20 +550,20 @@
       out.innerHTML = `
         <div class="kpi">
           <div class="box">
-            <div class="muted">${(state.lang === "id") ? "Harga minimum" : "Minimum price"}</div>
-            <div class="big">${moneyIDR(minPrice)} <span class="muted">${state.currency}</span></div>
+            <div class="muted">${state.lang==="id" ? "Harga minimum" : "Minimum price"}</div>
+            <div class="big">${fmtIDR(minPrice)} <span class="muted">${state.currency}</span></div>
           </div>
           <div class="box">
-            <div class="muted">${(state.lang === "id") ? "Saran (dibulatkan)" : "Suggested (rounded)"}</div>
-            <div class="big">${moneyIDR(suggested)} <span class="muted">${state.currency}</span></div>
+            <div class="muted">${state.lang==="id" ? "Saran (dibulatkan)" : "Suggested (rounded)"}</div>
+            <div class="big">${fmtIDR(suggested)} <span class="muted">${state.currency}</span></div>
           </div>
         </div>
         <div class="hr"></div>
         <div class="muted">${t().cards.breakdown}</div>
-        <div>EK: <b>${moneyIDR(EK)}</b></div>
-        <div>Susut: <b>${moneyIDR(susut)}</b> (${(susutPct*100).toFixed(2)}%)</div>
-        <div>Fixed: <b>${moneyIDR(fixed)}</b></div>
-        <div>Extra: <b>${moneyIDR(extra)}</b></div>
+        <div>EK: <b>${fmtIDR(EK)}</b></div>
+        <div>Susut: <b>${fmtIDR(susut)}</b> (${(susutPct*100).toFixed(2)}%)</div>
+        <div>Fixed: <b>${fmtIDR(fixed)}</b></div>
+        <div>Extra: <b>${fmtIDR(extra)}</b></div>
       `;
     };
 
@@ -671,30 +572,19 @@
     c.appendChild(btn);
 
     viewEl.appendChild(c);
-    viewEl.appendChild(hint);
     viewEl.appendChild(out);
-
-    updateHint();
   }
 
-  function render(doHeader=true) {
-    if (doHeader) renderHeader();
+  function render(withHeader=true){
+    if (withHeader) renderHeader();
     renderTabs();
     viewEl.innerHTML = "";
-
-    if (tab === "fix") renderFix();
-    if (tab === "asumsi") renderAsumsi();
-    if (tab === "calc") renderCalc();
+    if (tab==="fix") renderFix();
+    if (tab==="asumsi") renderAsumsi();
+    if (tab==="calc") renderCalc();
   }
 
-  // --- Events: language switch
-  langSel.addEventListener("change", () => {
-    state.lang = langSel.value;
-    save(false);
-    render(true);
-  });
-
-  // --- Buttons
+  // ---------- buttons ----------
   document.getElementById("saveBtn").onclick = () => save(true);
 
   document.getElementById("exportBtn").onclick = async () => {
@@ -703,16 +593,15 @@
       await navigator.clipboard.writeText(json);
       toast("JSON ✅");
     } catch {
-      prompt(t().jsonPromptExport, json);
+      prompt("JSON:", json);
     }
   };
 
   document.getElementById("importBtn").onclick = () => {
-    const txt = prompt(t().jsonPromptImport);
+    const txt = prompt("JSON:");
     if (!txt) return;
     try {
       const obj = JSON.parse(txt);
-      // merge into defaults for safety
       const merged = structuredClone(DEFAULT);
       merged.lang = obj.lang || merged.lang;
       merged.currency = obj.currency || merged.currency;
@@ -728,7 +617,14 @@
     }
   };
 
-  // --- Init
+  // ---------- language ----------
+  langSel.addEventListener("change", ()=>{
+    state.lang = langSel.value;
+    save(false);
+    render(true);
+  });
+
+  // Init
   render(true);
 })();
 </script>
