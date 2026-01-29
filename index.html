@@ -21,18 +21,9 @@
       color: var(--text);
       overflow-x:hidden;
     }
-    .wrap{
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 16px;
-    }
-    header{
-      display:flex; gap:12px; align-items:center; justify-content:space-between;
-      margin-bottom: 12px;
-    }
-    .title{
-      display:flex; flex-direction:column; gap:2px;
-    }
+    .wrap{ max-width: 980px; margin: 0 auto; padding: 16px; }
+    header{ display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom: 12px; }
+    .title{ display:flex; flex-direction:column; gap:2px; }
     h1{ font-size: 20px; margin:0; letter-spacing:0.2px; }
     .sub{ color:var(--muted); font-size:13px; }
     .row{ display:flex; gap:12px; flex-wrap:wrap; }
@@ -43,10 +34,7 @@
       border-radius: 999px;
       display:flex; gap:10px; align-items:center;
     }
-    select, button, input{
-      font: inherit;
-      color: var(--text);
-    }
+    select, button, input{ font: inherit; color: var(--text); }
     button{
       border:1px solid var(--border);
       background: rgba(255,255,255,0.06);
@@ -61,17 +49,12 @@
     }
     .tabs{
       display:flex; gap:10px; margin: 14px 0;
-      overflow-x:auto;
-      padding-bottom: 4px;
-      scrollbar-width: none;
+      overflow-x:auto; padding-bottom: 4px; scrollbar-width: none;
     }
     .tabs::-webkit-scrollbar{ display:none; }
     .tab{
-      white-space:nowrap;
-      padding:10px 12px;
-      border-radius: 999px;
-      border:1px solid var(--border);
-      background: rgba(255,255,255,0.05);
+      white-space:nowrap; padding:10px 12px; border-radius: 999px;
+      border:1px solid var(--border); background: rgba(255,255,255,0.05);
       color: var(--muted);
     }
     .tab.active{
@@ -87,18 +70,14 @@
       padding: 14px;
       overflow:hidden;
     }
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap:12px;
-    }
+    .grid{ display:grid; grid-template-columns: repeat(12, 1fr); gap:12px; }
     .col-12{ grid-column: span 12; }
+    .col-8{ grid-column: span 8; }
     .col-6{ grid-column: span 6; }
     .col-4{ grid-column: span 4; }
     .col-3{ grid-column: span 3; }
-    .col-2{ grid-column: span 2; }
     @media (max-width: 820px){
-      .col-6,.col-4,.col-3,.col-2{ grid-column: span 12; }
+      .col-8,.col-6,.col-4,.col-3{ grid-column: span 12; }
       header{ flex-direction:column; align-items:flex-start; }
     }
     label{ display:block; font-size:13px; color: var(--muted); margin-bottom:6px; }
@@ -135,7 +114,8 @@
     }
     .toast.show{ display:block; }
     .small{ font-size:12px; color: var(--muted); }
-    .danger{ color: var(--err); }
+    .checkrow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .checkrow input[type="checkbox"]{ width:18px; height:18px; }
   </style>
 </head>
 <body>
@@ -143,7 +123,7 @@
     <header>
       <div class="title">
         <h1>Pricing Tool</h1>
-        <div class="sub" id="subtitle">Dynamic fix cost % based on purchase price (smooth curve, no jumps).</div>
+        <div class="sub" id="subtitle">Dynamic deckungskosten% based on purchase price and real fixed costs.</div>
       </div>
 
       <div class="row">
@@ -169,18 +149,46 @@
       <div class="grid">
         <div class="col-12">
           <div class="small" id="fixExpl">
-            We compute a smooth Fix-Cost-% from the purchase price: basis × (1 + factor × ln(price/reference + 1)), then clamp to min/max.
+            Basis% is calculated from real fixed costs: Basis% = FixCostsTotal / TotalPurchase. Then we apply a smooth curve per item and clamp min/max.
+          </div>
+        </div>
+
+        <div class="col-6">
+          <label id="lblFixTotal">Fixed costs total (IDR / month)</label>
+          <input class="field num" id="fixTotal" inputmode="numeric" placeholder="5.000.000" />
+          <div class="hint" id="hintFixTotal">Example: rent + salary + electricity etc (monthly).</div>
+        </div>
+
+        <div class="col-6">
+          <label id="lblPurchaseTotal">Total purchase (IDR / month)</label>
+          <input class="field num" id="purchaseTotal" inputmode="numeric" placeholder="50.000.000" />
+          <div class="hint" id="hintPurchaseTotal">Sum of all COGS purchases for the month.</div>
+        </div>
+
+        <div class="col-12">
+          <div class="checkrow">
+            <input type="checkbox" id="autoBasis" />
+            <label for="autoBasis" id="lblAutoBasis" style="margin:0;color:var(--text)">Auto-calculate Basis% from totals</label>
+            <span class="small" id="autoBasisNote">(recommended)</span>
           </div>
         </div>
 
         <div class="col-3">
-          <label id="lblBasis">Basis Fix Cost %</label>
+          <label id="lblBasis">Basis % (manual / fallback)</label>
           <input class="field num" id="basisPct" inputmode="decimal" placeholder="10" />
-          <div class="hint" id="hintBasis">Example: 10 means 10%.</div>
+          <div class="hint" id="hintBasis">Used if Auto is OFF or totals are missing.</div>
         </div>
 
         <div class="col-3">
-          <label id="lblRef">Reference Purchase (IDR)</label>
+          <label id="lblBasisCalc">Basis % (calculated)</label>
+          <div class="kpi">
+            <div class="v mono" id="basisCalcOut">—</div>
+            <div class="t" id="basisCalcOutT">FixTotal / PurchaseTotal</div>
+          </div>
+        </div>
+
+        <div class="col-3">
+          <label id="lblRef">Reference purchase (IDR)</label>
           <input class="field num" id="refPrice" inputmode="numeric" placeholder="10.000" />
           <div class="hint" id="hintRef">Typical average purchase price.</div>
         </div>
@@ -188,29 +196,29 @@
         <div class="col-3">
           <label id="lblFactor">Progression factor</label>
           <input class="field num" id="progFactor" inputmode="decimal" placeholder="0,3" />
-          <div class="hint" id="hintFactor">How strong % grows with price.</div>
+          <div class="hint" id="hintFactor">Smooth increase strength.</div>
         </div>
 
         <div class="col-3">
-          <label id="lblMin">Fix Cost min %</label>
+          <label id="lblMin">Min %</label>
           <input class="field num" id="minPct" inputmode="decimal" placeholder="6" />
           <div class="hint" id="hintMin">Lower clamp.</div>
         </div>
 
         <div class="col-3">
-          <label id="lblMax">Fix Cost max %</label>
+          <label id="lblMax">Max %</label>
           <input class="field num" id="maxPct" inputmode="decimal" placeholder="15" />
           <div class="hint" id="hintMax">Upper clamp.</div>
         </div>
 
-        <div class="col-9">
+        <div class="col-6">
           <div class="kpi">
             <div class="t" id="kpiTitle">Quick test (enter a purchase price)</div>
             <div class="row" style="align-items:center; gap:12px;">
               <input class="field num" id="testPurchase" inputmode="numeric" placeholder="30.000" style="max-width:220px;" />
               <div class="v mono" id="kpiResult">—</div>
-              <div class="small" id="kpiFormula">Fix% = basis × (1 + factor × ln(price/ref + 1)) → clamp</div>
             </div>
+            <div class="small" id="kpiFormula">Deckungskosten% = basis × (1 + factor × ln(price/ref + 1)) → clamp</div>
           </div>
         </div>
 
@@ -266,7 +274,7 @@
             <option value="beverage">Beverage / Minuman</option>
             <option value="fresh">Fresh food / Segar</option>
             <option value="snack">Snack</option>
-            <option value="staple">Staples (Rice, sugar) / Sembako</option>
+            <option value="staple">Staples / Sembako</option>
             <option value="dryfood">Dryfood / Indomie etc</option>
             <option value="other">Other</option>
           </select>
@@ -285,20 +293,18 @@
           <div class="hint" id="hintCompetitor">If you want to compare.</div>
         </div>
 
-        <div class="col-12">
-          <div class="hr"></div>
-        </div>
+        <div class="col-12"><div class="hr"></div></div>
 
         <div class="col-3">
           <div class="kpi">
-            <div class="v mono" id="outFixPct">—</div>
-            <div class="t" id="outFixPctT">Fix cost % (dynamic)</div>
+            <div class="v mono" id="outDeckPct">—</div>
+            <div class="t" id="outDeckPctT">Deckungskosten % (dynamic)</div>
           </div>
         </div>
         <div class="col-3">
           <div class="kpi">
-            <div class="v mono" id="outLossPct">—</div>
-            <div class="t" id="outLossPctT">Loss %</div>
+            <div class="v mono" id="outDeckIDR">—</div>
+            <div class="t" id="outDeckIDRT">Deckungskosten (IDR)</div>
           </div>
         </div>
         <div class="col-3">
@@ -316,8 +322,7 @@
 
         <div class="col-12">
           <div class="small" id="calcNote">
-            Formula: Minimum Price = Purchase / (1 - (Fix% + Loss% + Tax% + Margin%)).
-            If competitor is lower, you can decide to reduce margin (not automatic).
+            Formula: Minimum Price = Purchase / (1 - (Deck% + Loss% + Tax% + Margin%)).
           </div>
         </div>
       </div>
@@ -335,34 +340,31 @@ function formatIDRInt(n){
   const s = Math.round(n).toString();
   return s.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
-// Allows "10.000", "10,000", "10000", "0", etc.
 function parseNumberLoose(str){
   if (str == null) return NaN;
   const cleaned = String(str).trim()
     .replace(/\s+/g,"")
-    .replace(/\./g,"")      // remove thousand dots
-    .replace(/,/g,".");     // decimal comma -> dot
+    .replace(/\./g,"")
+    .replace(/,/g,".");
   if (cleaned === "") return NaN;
   const n = Number(cleaned);
   return isFinite(n) ? n : NaN;
 }
-// Percent input like "10" => 0.10
 function pctToUnit(pct){ return pct / 100; }
 function unitToPct(unit){ return unit * 100; }
 
-/** ---------- Dynamic Fix% (Variant B: smooth curve) ---------- */
-function dynamicFixPctUnit(purchase, basisUnit, ref, factor, minUnit, maxUnit){
+/** ---------- Dynamic Deckungskosten% (smooth curve) ---------- */
+function dynamicDeckPctUnit(purchase, basisUnit, ref, factor, minUnit, maxUnit){
   if (!(purchase > 0) || !(ref > 0) || !isFinite(factor) || !isFinite(basisUnit)) return NaN;
   const raw = basisUnit * (1 + factor * Math.log(purchase / ref + 1));
-  const clamped = Math.min(maxUnit, Math.max(minUnit, raw));
-  return clamped;
+  return Math.min(maxUnit, Math.max(minUnit, raw));
 }
 
 /** ---------- Storage ---------- */
 const KEYS = {
-  fix: "pricing_tool_fix_v2",
-  assum: "pricing_tool_assum_v2",
-  lang: "pricing_tool_lang_v2",
+  fix: "pricing_tool_fix_v3",
+  assum: "pricing_tool_assum_v3",
+  lang: "pricing_tool_lang_v3",
 };
 function saveJSON(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
 function loadJSON(key){
@@ -370,101 +372,59 @@ function loadJSON(key){
   catch(e){ return null; }
 }
 
-/** ---------- UI: language ---------- */
+/** ---------- UI: language (minimal, keep prior texts mostly) ---------- */
 const I18N = {
   en: {
-    subtitle: "Dynamic fix cost % based on purchase price (smooth curve, no jumps).",
-    langLabel:"Language",
-    tabFix:"Fix Costs",
-    tabAssum:"Assumptions",
-    tabCalc:"Calculator",
-    reset:"Reset",
-
-    fixExpl:"We compute a smooth Fix-Cost-% from the purchase price: basis × (1 + factor × ln(price/reference + 1)), then clamp to min/max.",
-    lblBasis:"Basis Fix Cost %",
-    hintBasis:"Example: 10 means 10%.",
-    lblRef:"Reference Purchase (IDR)",
-    hintRef:"Typical average purchase price.",
-    lblFactor:"Progression factor",
-    hintFactor:"How strong % grows with price.",
-    lblMin:"Fix Cost min %",
-    hintMin:"Lower clamp.",
-    lblMax:"Fix Cost max %",
-    hintMax:"Upper clamp.",
-    kpiTitle:"Quick test (enter a purchase price)",
-    kpiFormula:"Fix% = basis × (1 + factor × ln(price/ref + 1)) → clamp",
-    save:"Save",
-    load:"Load saved",
-    saveHint:"Saved to your browser (localStorage). You can overwrite anytime.",
-    saved:"Saved.",
-
-    lblLoss:"Loss / shrinkage %",
-    hintLoss:"Product loss / spoilage.",
-    lblMargin:"Target margin %",
-    hintMargin:"Your desired gross margin.",
-    lblTax:"Tax / misc % (optional)",
-    hintTax:"Optional extra %.",
+    subtitle: "Dynamic deckungskosten% based on purchase price and real fixed costs.",
+    langLabel:"Language", tabFix:"Fix Costs", tabAssum:"Assumptions", tabCalc:"Calculator", reset:"Reset",
+    fixExpl:"Basis% is calculated from real fixed costs: Basis% = FixCostsTotal / TotalPurchase. Then we apply a smooth curve per item and clamp min/max.",
+    lblFixTotal:"Fixed costs total (IDR / month)", hintFixTotal:"Example: rent + salary + electricity etc (monthly).",
+    lblPurchaseTotal:"Total purchase (IDR / month)", hintPurchaseTotal:"Sum of all COGS purchases for the month.",
+    lblAutoBasis:"Auto-calculate Basis% from totals", autoBasisNote:"(recommended)",
+    lblBasis:"Basis % (manual / fallback)", hintBasis:"Used if Auto is OFF or totals are missing.",
+    lblBasisCalc:"Basis % (calculated)", basisCalcOutT:"FixTotal / PurchaseTotal",
+    lblRef:"Reference purchase (IDR)", hintRef:"Typical average purchase price.",
+    lblFactor:"Progression factor", hintFactor:"Smooth increase strength.",
+    lblMin:"Min %", hintMin:"Lower clamp.", lblMax:"Max %", hintMax:"Upper clamp.",
+    kpiTitle:"Quick test (enter a purchase price)", kpiFormula:"Deckungskosten% = basis × (1 + factor × ln(price/ref + 1)) → clamp",
+    save:"Save", load:"Load saved", saveHint:"Saved to your browser (localStorage). You can overwrite anytime.", saved:"Saved.",
+    lblLoss:"Loss / shrinkage %", hintLoss:"Product loss / spoilage.",
+    lblMargin:"Target margin %", hintMargin:"Your desired gross margin.",
+    lblTax:"Tax / misc % (optional)", hintTax:"Optional extra %.",
     assHint:"Saved to your browser. Editable anytime.",
-
-    lblCategory:"Category",
-    hintCat:"Category is for filtering later (optional).",
-    lblPurchase:"Purchase price (IDR)",
-    hintPurchase:"Supplier price (COGS).",
-    lblCompetitor:"Competitor price (IDR, optional)",
-    hintCompetitor:"If you want to compare.",
-    outFixPctT:"Fix cost % (dynamic)",
-    outLossPctT:"Loss %",
-    outMarginPctT:"Target margin %",
-    outMinPriceT:"Minimum selling price",
-    calcNote:"Formula: Minimum Price = Purchase / (1 - (Fix% + Loss% + Tax% + Margin%)). If competitor is lower, you can decide to reduce margin (not automatic).",
+    lblCategory:"Category", hintCat:"Category is for filtering later (optional).",
+    lblPurchase:"Purchase price (IDR)", hintPurchase:"Supplier price (COGS).",
+    lblCompetitor:"Competitor price (IDR, optional)", hintCompetitor:"If you want to compare.",
+    outDeckPctT:"Deckungskosten % (dynamic)", outDeckIDRT:"Deckungskosten (IDR)",
+    outMarginPctT:"Target margin %", outMinPriceT:"Minimum selling price",
+    calcNote:"Formula: Minimum Price = Purchase / (1 - (Deck% + Loss% + Tax% + Margin%)).",
     footerNote:"Tip: Tap/click a number field to edit raw digits; it formats with dots when you leave the field.",
   },
   id: {
-    subtitle: "Persentase biaya tetap dihitung dinamis dari harga beli (kurva halus, tanpa loncatan).",
-    langLabel:"Bahasa",
-    tabFix:"Biaya Tetap",
-    tabAssum:"Asumsi",
-    tabCalc:"Kalkulator",
-    reset:"Reset",
-
-    fixExpl:"Kami hitung % Biaya Tetap secara halus dari harga beli: basis × (1 + faktor × ln(harga/referensi + 1)), lalu dibatasi min/maks.",
-    lblBasis:"Basis % Biaya Tetap",
-    hintBasis:"Contoh: 10 artinya 10%.",
-    lblRef:"Harga Referensi (IDR)",
-    hintRef:"Rata-rata harga beli tipikal.",
-    lblFactor:"Faktor progresi",
-    hintFactor:"Seberapa kuat % naik saat harga naik.",
-    lblMin:"Min % Biaya Tetap",
-    hintMin:"Batas bawah.",
-    lblMax:"Maks % Biaya Tetap",
-    hintMax:"Batas atas.",
-    kpiTitle:"Tes cepat (isi harga beli)",
-    kpiFormula:"Fix% = basis × (1 + faktor × ln(harga/ref + 1)) → clamp",
-    save:"Simpan",
-    load:"Muat",
-    saveHint:"Disimpan di browser (localStorage). Bisa diubah kapan saja.",
-    saved:"Tersimpan.",
-
-    lblLoss:"Susut / rusak %",
-    hintLoss:"Kerusakan / kedaluwarsa.",
-    lblMargin:"Target margin %",
-    hintMargin:"Margin kotor yang diinginkan.",
-    lblTax:"Pajak / lain-lain % (opsional)",
-    hintTax:"Tambahan % opsional.",
+    subtitle: "% biaya tetap dinamis berdasarkan harga beli & biaya tetap nyata.",
+    langLabel:"Bahasa", tabFix:"Biaya Tetap", tabAssum:"Asumsi", tabCalc:"Kalkulator", reset:"Reset",
+    fixExpl:"Basis% dihitung dari biaya tetap nyata: Basis% = Total Biaya Tetap / Total Pembelian. Lalu pakai kurva halus per item + batas min/maks.",
+    lblFixTotal:"Total biaya tetap (IDR / bulan)", hintFixTotal:"Contoh: sewa + gaji + listrik (bulanan).",
+    lblPurchaseTotal:"Total pembelian/HPP (IDR / bulan)", hintPurchaseTotal:"Jumlah seluruh pembelian barang (HPP) per bulan.",
+    lblAutoBasis:"Hitung Basis% otomatis dari total", autoBasisNote:"(disarankan)",
+    lblBasis:"Basis % (manual / cadangan)", hintBasis:"Dipakai jika Auto OFF atau total kosong.",
+    lblBasisCalc:"Basis % (hasil hitung)", basisCalcOutT:"BiayaTetap / PembelianTotal",
+    lblRef:"Harga referensi (IDR)", hintRef:"Rata-rata harga beli tipikal.",
+    lblFactor:"Faktor progresi", hintFactor:"Kekuatan kenaikan halus.",
+    lblMin:"Min %", hintMin:"Batas bawah.", lblMax:"Maks %", hintMax:"Batas atas.",
+    kpiTitle:"Tes cepat (isi harga beli)", kpiFormula:"% = basis × (1 + faktor × ln(harga/ref + 1)) → clamp",
+    save:"Simpan", load:"Muat", saveHint:"Disimpan di browser (localStorage). Bisa diubah kapan saja.", saved:"Tersimpan.",
+    lblLoss:"Susut / rusak %", hintLoss:"Kerusakan / kedaluwarsa.",
+    lblMargin:"Target margin %", hintMargin:"Margin kotor yang diinginkan.",
+    lblTax:"Pajak / lain-lain % (opsional)", hintTax:"Tambahan % opsional.",
     assHint:"Disimpan di browser. Bisa diedit kapan saja.",
-
-    lblCategory:"Kategori",
-    hintCat:"Kategori untuk filter nanti (opsional).",
-    lblPurchase:"Harga beli (IDR)",
-    hintPurchase:"Harga dari supplier (HPP).",
-    lblCompetitor:"Harga pesaing (IDR, opsional)",
-    hintCompetitor:"Untuk perbandingan.",
-    outFixPctT:"% Biaya tetap (dinamis)",
-    outLossPctT:"% Susut",
-    outMarginPctT:"% Margin target",
-    outMinPriceT:"Harga jual minimum",
-    calcNote:"Rumus: Harga Minimum = Harga Beli / (1 - (Fix% + Susut% + Pajak% + Margin%)). Jika pesaing lebih rendah, Anda bisa turunkan margin (tidak otomatis).",
-    footerNote:"Tip: Klik/ketuk angka untuk edit mentah; akan diformat pakai titik saat keluar dari field.",
+    lblCategory:"Kategori", hintCat:"Kategori untuk filter nanti (opsional).",
+    lblPurchase:"Harga beli (IDR)", hintPurchase:"Harga dari supplier (HPP).",
+    lblCompetitor:"Harga pesaing (IDR, opsional)", hintCompetitor:"Untuk perbandingan.",
+    outDeckPctT:"% Biaya tetap (dinamis)", outDeckIDRT:"Biaya tetap (IDR)",
+    outMarginPctT:"% Margin target", outMinPriceT:"Harga jual minimum",
+    calcNote:"Rumus: Harga Minimum = Harga Beli / (1 - (Deck% + Susut% + Pajak% + Margin%)).",
+    footerNote:"Tip: Klik/ketuk angka untuk edit; akan diformat pakai titik saat keluar dari field.",
   }
 };
 
@@ -472,45 +432,31 @@ const I18N = {
 const el = (id)=>document.getElementById(id);
 const pages = { fix: el("pageFix"), assum: el("pageAssum"), calc: el("pageCalc") };
 
-/** ---------- Numeric input behavior (fixes the 'can't type 0' issue) ----------
-  - On focus: show raw unformatted number (no thousand dots) so typing is easy.
-  - On blur: format integer fields with dots; keep decimals for % / factor.
-*/
+/** ---------- Numeric input behavior ---------- */
 function attachNumericBehavior(){
   const numInputs = document.querySelectorAll("input.num");
   numInputs.forEach(inp=>{
     inp.addEventListener("focus", ()=>{
-      // show raw
       const n = parseNumberLoose(inp.value);
       if (isFinite(n)) {
-        // keep decimals if user had decimals
         const wantsDecimal = /[,\.]\d/.test(String(inp.value));
         inp.value = wantsDecimal ? String(n).replace(".", ",") : String(Math.trunc(n));
       }
     });
-
     inp.addEventListener("blur", ()=>{
       const id = inp.id;
       const n = parseNumberLoose(inp.value);
       if (!isFinite(n)) { inp.value=""; updateAll(); return; }
-
-      // Decide formatting type: IDR integer vs percent/decimal
-      const isIDR = ["refPrice","testPurchase","purchasePrice","competitorPrice"].includes(id);
+      const isIDR = ["fixTotal","purchaseTotal","refPrice","testPurchase","purchasePrice","competitorPrice"].includes(id);
       if (isIDR){
         inp.value = formatIDRInt(n);
       } else {
-        // show with comma for decimals in UI
-        // keep up to 2 decimals
         const s = (Math.round(n*100)/100).toString().replace(".", ",");
         inp.value = s;
       }
       updateAll();
     });
-
-    inp.addEventListener("input", ()=>{
-      // do not auto-format while typing (prevents desktop typing bugs)
-      updateAll(true);
-    });
+    inp.addEventListener("input", ()=> updateAll(true));
   });
 }
 
@@ -531,8 +477,7 @@ function showToast(id){
   setTimeout(()=>t.classList.remove("show"), 1200);
 }
 el("saveFixBtn").addEventListener("click", ()=>{
-  const data = readFixInputs();
-  saveJSON(KEYS.fix, data);
+  saveJSON(KEYS.fix, readFixInputs());
   showToast("toastFix");
 });
 el("loadFixBtn").addEventListener("click", ()=>{
@@ -541,8 +486,7 @@ el("loadFixBtn").addEventListener("click", ()=>{
   updateAll();
 });
 el("saveAssBtn").addEventListener("click", ()=>{
-  const data = readAssumInputs();
-  saveJSON(KEYS.assum, data);
+  saveJSON(KEYS.assum, readAssumInputs());
   showToast("toastAss");
 });
 el("loadAssBtn").addEventListener("click", ()=>{
@@ -554,7 +498,6 @@ el("loadAssBtn").addEventListener("click", ()=>{
 el("resetBtn").addEventListener("click", ()=>{
   localStorage.removeItem(KEYS.fix);
   localStorage.removeItem(KEYS.assum);
-  // keep language
   setDefaults();
   updateAll();
 });
@@ -562,14 +505,20 @@ el("resetBtn").addEventListener("click", ()=>{
 /** ---------- Read/Write input state ---------- */
 function readFixInputs(){
   return {
-    basisPct: parseNumberLoose(el("basisPct").value),    // in %
-    refPrice: parseNumberLoose(el("refPrice").value),    // IDR
+    fixTotal: parseNumberLoose(el("fixTotal").value),
+    purchaseTotal: parseNumberLoose(el("purchaseTotal").value),
+    autoBasis: !!el("autoBasis").checked,
+    basisPct: parseNumberLoose(el("basisPct").value),
+    refPrice: parseNumberLoose(el("refPrice").value),
     progFactor: parseNumberLoose(el("progFactor").value),
-    minPct: parseNumberLoose(el("minPct").value),        // in %
-    maxPct: parseNumberLoose(el("maxPct").value)         // in %
+    minPct: parseNumberLoose(el("minPct").value),
+    maxPct: parseNumberLoose(el("maxPct").value)
   };
 }
 function writeFixInputs(d){
+  if (isFinite(d.fixTotal)) el("fixTotal").value = formatIDRInt(d.fixTotal);
+  if (isFinite(d.purchaseTotal)) el("purchaseTotal").value = formatIDRInt(d.purchaseTotal);
+  el("autoBasis").checked = !!d.autoBasis;
   if (isFinite(d.basisPct)) el("basisPct").value = String(d.basisPct).replace(".", ",");
   if (isFinite(d.refPrice)) el("refPrice").value = formatIDRInt(d.refPrice);
   if (isFinite(d.progFactor)) el("progFactor").value = String(d.progFactor).replace(".", ",");
@@ -591,7 +540,10 @@ function writeAssumInputs(d){
 
 /** ---------- Defaults ---------- */
 function setDefaults(){
-  // Fix costs defaults
+  el("fixTotal").value = "5.000.000";
+  el("purchaseTotal").value = "50.000.000";
+  el("autoBasis").checked = true;
+
   el("basisPct").value = "10";
   el("refPrice").value = "10.000";
   el("progFactor").value = "0,3";
@@ -599,47 +551,57 @@ function setDefaults(){
   el("maxPct").value = "15";
   el("testPurchase").value = "30.000";
 
-  // Assumptions defaults
   el("lossPct").value = "2";
   el("marginPct").value = "20";
   el("taxPct").value = "0";
 
-  // Calculator defaults
   el("purchasePrice").value = "10.000";
   el("competitorPrice").value = "";
 }
 
+/** ---------- Basis calculation (from real fixed costs) ---------- */
+function calcBasisUnit(fixTotal, purchaseTotal, manualBasisPct, autoBasis){
+  const canAuto = autoBasis && (fixTotal > 0) && (purchaseTotal > 0);
+  if (canAuto){
+    return fixTotal / purchaseTotal; // unit (e.g. 0.10)
+  }
+  // fallback manual
+  return pctToUnit(manualBasisPct || 0);
+}
+
 /** ---------- Main calc ---------- */
-function updateAll(isTyping=false){
-  // Fix inputs
+function updateAll(){
   const f = readFixInputs();
-  const basisU = pctToUnit(f.basisPct || 0);
+
+  const basisUnit = calcBasisUnit(f.fixTotal, f.purchaseTotal, f.basisPct, f.autoBasis);
+  const basisPctCalc = isFinite(basisUnit) ? unitToPct(basisUnit) : NaN;
+  el("basisCalcOut").textContent = isFinite(basisPctCalc) ? (basisPctCalc.toFixed(2).replace(".", ",") + " %") : "—";
+
   const minU = pctToUnit(f.minPct || 0);
   const maxU = pctToUnit(f.maxPct || 0);
 
-  // Fix KPI test
+  // quick test
   const testP = parseNumberLoose(el("testPurchase").value);
-  const fixTestU = dynamicFixPctUnit(testP, basisU, f.refPrice, f.progFactor || 0, minU, maxU);
-  el("kpiResult").textContent = isFinite(fixTestU)
-    ? (unitToPct(fixTestU).toFixed(1).replace(".", ",") + " %")
+  const deckTestU = dynamicDeckPctUnit(testP, basisUnit, f.refPrice, f.progFactor || 0, minU, maxU);
+  el("kpiResult").textContent = isFinite(deckTestU)
+    ? (unitToPct(deckTestU).toFixed(1).replace(".", ",") + " %")
     : "—";
 
-  // Assumptions
+  // assumptions
   const a = readAssumInputs();
   const lossU = pctToUnit(a.lossPct || 0);
   const marginU = pctToUnit(a.marginPct || 0);
   const taxU = pctToUnit(a.taxPct || 0);
 
-  // Calculator purchase
+  // calculator purchase
   const purchase = parseNumberLoose(el("purchasePrice").value);
-  const fixU = dynamicFixPctUnit(purchase, basisU, f.refPrice, f.progFactor || 0, minU, maxU);
+  const deckU = dynamicDeckPctUnit(purchase, basisUnit, f.refPrice, f.progFactor || 0, minU, maxU);
 
-  el("outFixPct").textContent = isFinite(fixU) ? (unitToPct(fixU).toFixed(1).replace(".", ",") + " %") : "—";
-  el("outLossPct").textContent = (unitToPct(lossU).toFixed(1).replace(".", ",") + " %");
+  el("outDeckPct").textContent = isFinite(deckU) ? (unitToPct(deckU).toFixed(1).replace(".", ",") + " %") : "—";
+  el("outDeckIDR").textContent = (purchase > 0 && isFinite(deckU)) ? (formatIDRInt(purchase * deckU) + " IDR") : "—";
   el("outMarginPct").textContent = (unitToPct(marginU).toFixed(1).replace(".", ",") + " %");
 
-  // Minimum price formula
-  const totalU = (isFinite(fixU)?fixU:0) + lossU + taxU + marginU;
+  const totalU = (isFinite(deckU)?deckU:0) + lossU + taxU + marginU;
   let minPrice = NaN;
   if (purchase > 0 && totalU < 0.95){
     minPrice = purchase / (1 - totalU);
@@ -649,7 +611,7 @@ function updateAll(isTyping=false){
 
 /** ---------- Language apply ---------- */
 function applyLang(lang){
-  const t = I18N[lang] || I18N.en;
+  const t = (I18N[lang] || I18N.en);
 
   el("subtitle").textContent = t.subtitle;
   el("langLabel").textContent = t.langLabel;
@@ -659,8 +621,19 @@ function applyLang(lang){
   el("resetBtn").textContent = t.reset;
 
   el("fixExpl").textContent = t.fixExpl;
+  el("lblFixTotal").textContent = t.lblFixTotal;
+  el("hintFixTotal").textContent = t.hintFixTotal;
+  el("lblPurchaseTotal").textContent = t.lblPurchaseTotal;
+  el("hintPurchaseTotal").textContent = t.hintPurchaseTotal;
+
+  el("lblAutoBasis").textContent = t.lblAutoBasis;
+  el("autoBasisNote").textContent = t.autoBasisNote;
+
   el("lblBasis").textContent = t.lblBasis;
   el("hintBasis").textContent = t.hintBasis;
+  el("lblBasisCalc").textContent = t.lblBasisCalc;
+  el("basisCalcOutT").textContent = t.basisCalcOutT;
+
   el("lblRef").textContent = t.lblRef;
   el("hintRef").textContent = t.hintRef;
   el("lblFactor").textContent = t.lblFactor;
@@ -669,6 +642,7 @@ function applyLang(lang){
   el("hintMin").textContent = t.hintMin;
   el("lblMax").textContent = t.lblMax;
   el("hintMax").textContent = t.hintMax;
+
   el("kpiTitle").textContent = t.kpiTitle;
   el("kpiFormula").textContent = t.kpiFormula;
 
@@ -695,8 +669,8 @@ function applyLang(lang){
   el("lblCompetitor").textContent = t.lblCompetitor;
   el("hintCompetitor").textContent = t.hintCompetitor;
 
-  el("outFixPctT").textContent = t.outFixPctT;
-  el("outLossPctT").textContent = t.outLossPctT;
+  el("outDeckPctT").textContent = t.outDeckPctT;
+  el("outDeckIDRT").textContent = t.outDeckIDRT;
   el("outMarginPctT").textContent = t.outMarginPctT;
   el("outMinPriceT").textContent = t.outMinPriceT;
   el("calcNote").textContent = t.calcNote;
@@ -709,28 +683,31 @@ function applyLang(lang){
 (function init(){
   attachNumericBehavior();
 
+  // tabs
+  document.querySelectorAll(".tab").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      const t = btn.dataset.tab;
+      Object.keys(pages).forEach(k=>pages[k].style.display = (k===t) ? "" : "none");
+    });
+  });
+
+  // load saved
   const langSaved = loadJSON(KEYS.lang);
   const lang = (langSaved && langSaved.lang) ? langSaved.lang : "en";
   el("langSelect").value = lang;
   applyLang(lang);
 
+  setDefaults();
   const fixSaved = loadJSON(KEYS.fix);
   const assSaved = loadJSON(KEYS.assum);
-
-  setDefaults();
   if (fixSaved) writeFixInputs(fixSaved);
   if (assSaved) writeAssumInputs(assSaved);
 
-  // update on any change
-  document.addEventListener("input", (e)=>{
-    const id = e.target && e.target.id;
-    if (!id) return;
-    if (["category"].includes(id)) updateAll();
-  });
-
-  el("langSelect").addEventListener("change", (e)=>{
-    applyLang(e.target.value);
-  });
+  // events
+  el("langSelect").addEventListener("change", (e)=> applyLang(e.target.value));
+  el("autoBasis").addEventListener("change", ()=> updateAll());
 
   updateAll();
 })();
