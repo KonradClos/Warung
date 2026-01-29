@@ -2,630 +2,737 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Warung Pricing</title>
-  <meta name="theme-color" content="#111827" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pricing Tool</title>
   <style>
-    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-    * { box-sizing: border-box; }
-    body { margin:0; background:#0b1220; color:#e5e7eb; overflow-x: hidden; }
-
-    header {
-      padding:14px 16px;
-      background:#111827;
-      border-bottom:1px solid #1f2937;
-      position: sticky; top:0; z-index: 10;
+    :root{
+      --bg:#0b1020; --card:#121a33; --muted:#93a4c7; --text:#e9efff;
+      --acc:#4da3ff; --ok:#41d19b; --warn:#ffcc66; --err:#ff6b6b;
+      --border: rgba(255,255,255,0.10);
+      --shadow: 0 10px 30px rgba(0,0,0,0.25);
+      --radius: 18px;
     }
-    h1 { margin:0; font-size:16px; }
-    .muted { color:#94a3b8; font-size:12px; }
-
-    .topbar { display:flex; gap:10px; align-items:center; justify-content:space-between; margin-top:8px; flex-wrap: wrap; }
-    .pill { display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; border:1px solid #1f2937; background:#0f172a; }
-    .pill select { border:none; background:transparent; color:#e5e7eb; padding:0; width:auto; }
-
-    .tabs {
-      display:flex; gap:8px; padding:10px 16px;
-      border-bottom:1px solid #1f2937; overflow:auto;
-      position: sticky; top:82px; background:#0b1220; z-index: 9;
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 10% 10%, #16224a 0%, var(--bg) 50%, #070a14 100%);
+      color: var(--text);
+      overflow-x:hidden;
     }
-    .tab {
-      padding:8px 12px; border-radius:999px;
-      border:1px solid #1f2937; background:#0f172a; color:#e5e7eb;
-      cursor:pointer; white-space: nowrap;
+    .wrap{
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 16px;
     }
-    .tab.active { background:#2563eb; border-color:#2563eb; }
-
-    main { padding:16px 16px 90px; max-width:900px; margin:auto; }
-
-    .card { background:#111827; border:1px solid #1f2937; border-radius:14px; padding:12px; margin-bottom:12px; overflow:hidden; }
-    .row { display:grid; grid-template-columns: 1fr 260px; gap:12px; align-items:center; margin:12px 0; }
-    label { font-size:13px; color:#cbd5e1; }
-
-    input, select, button {
+    header{
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+      margin-bottom: 12px;
+    }
+    .title{
+      display:flex; flex-direction:column; gap:2px;
+    }
+    h1{ font-size: 20px; margin:0; letter-spacing:0.2px; }
+    .sub{ color:var(--muted); font-size:13px; }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; }
+    .pill{
+      background: rgba(255,255,255,0.06);
+      border:1px solid var(--border);
+      padding:8px 10px;
+      border-radius: 999px;
+      display:flex; gap:10px; align-items:center;
+    }
+    select, button, input{
+      font: inherit;
+      color: var(--text);
+    }
+    button{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      padding:10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+    }
+    button:hover{ border-color: rgba(255,255,255,0.2); }
+    button.primary{
+      background: linear-gradient(180deg, rgba(77,163,255,0.25), rgba(77,163,255,0.08));
+      border-color: rgba(77,163,255,0.35);
+    }
+    .tabs{
+      display:flex; gap:10px; margin: 14px 0;
+      overflow-x:auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar{ display:none; }
+    .tab{
+      white-space:nowrap;
+      padding:10px 12px;
+      border-radius: 999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+    }
+    .tab.active{
+      color: var(--text);
+      border-color: rgba(77,163,255,0.35);
+      background: rgba(77,163,255,0.12);
+    }
+    .card{
+      background: rgba(18,26,51,0.75);
+      border:1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 14px;
+      overflow:hidden;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:12px;
+    }
+    .col-12{ grid-column: span 12; }
+    .col-6{ grid-column: span 6; }
+    .col-4{ grid-column: span 4; }
+    .col-3{ grid-column: span 3; }
+    .col-2{ grid-column: span 2; }
+    @media (max-width: 820px){
+      .col-6,.col-4,.col-3,.col-2{ grid-column: span 12; }
+      header{ flex-direction:column; align-items:flex-start; }
+    }
+    label{ display:block; font-size:13px; color: var(--muted); margin-bottom:6px; }
+    .field{
       width:100%;
-      padding:10px;
-      border-radius:10px;
-      border:1px solid #334155;
-      background:#0b1220;
-      color:#e5e7eb;
-      font-size:14px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      padding: 10px 12px;
+      outline:none;
     }
-    button { background:#1f2937; cursor:pointer; }
-    button.primary { background:#2563eb; border-color:#2563eb; }
-
-    .kpi { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:12px; }
-    .kpi .box { background:#0b1220; border:1px solid #1f2937; padding:10px; border-radius:12px; }
-    .big { font-size:18px; font-weight:700; }
-    .hr { height:1px; background:#1f2937; margin:12px 0; }
-
-    .footer {
-      position:fixed; bottom:0; left:0; right:0;
-      background:#111827; border-top:1px solid #1f2937;
-      padding:10px 16px; display:flex; gap:10px; z-index: 11;
+    .field:focus{ border-color: rgba(77,163,255,0.45); }
+    .hint{ font-size:12px; color: var(--muted); margin-top:6px; }
+    .kpi{
+      display:flex; flex-direction:column; gap:4px;
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      min-height: 74px;
     }
-    .footer button { flex:1; }
-
-    /* Mobile: stack rows, no horizontal scroll */
-    @media (max-width: 600px) {
-      .tabs { top: 98px; }
-      .row { grid-template-columns: 1fr; }
+    .kpi .v{ font-size: 20px; font-weight: 700; }
+    .kpi .t{ font-size: 12px; color: var(--muted); }
+    .mono{ font-variant-numeric: tabular-nums; }
+    .hr{ height:1px; background: var(--border); margin: 14px 0; }
+    .toast{
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border:1px solid var(--border);
+      background: rgba(65,209,155,0.10);
+      color: rgba(233,255,245,0.95);
+      display:none;
     }
+    .toast.show{ display:block; }
+    .small{ font-size:12px; color: var(--muted); }
+    .danger{ color: var(--err); }
   </style>
 </head>
-
 <body>
-<header>
-  <h1 id="title">Warung Pricing</h1>
-  <div class="topbar">
-    <div class="muted" id="subtitle"></div>
-    <div class="pill">
-      <span class="muted" id="langLabel">Language</span>
-      <select id="langSel" aria-label="Language">
-        <option value="id">Bahasa</option>
-        <option value="en">English</option>
-      </select>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>Pricing Tool</h1>
+        <div class="sub" id="subtitle">Dynamic fix cost % based on purchase price (smooth curve, no jumps).</div>
+      </div>
+
+      <div class="row">
+        <div class="pill">
+          <span class="small" id="langLabel">Language</span>
+          <select id="langSelect" class="field" style="padding:8px 10px;border-radius:999px">
+            <option value="en">English</option>
+            <option value="id">Bahasa Indonesia</option>
+          </select>
+        </div>
+        <button class="primary" id="resetBtn">Reset</button>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="fix" id="tabFix">Fix Costs</button>
+      <button class="tab" data-tab="assum" id="tabAssum">Assumptions</button>
+      <button class="tab" data-tab="calc" id="tabCalc">Calculator</button>
     </div>
-  </div>
-</header>
 
-<div class="tabs" id="tabs"></div>
-<main id="view"></main>
-
-<div class="footer">
-  <button id="exportBtn">JSON Export</button>
-  <button id="importBtn">JSON Import</button>
-  <button class="primary" id="saveBtn">Save</button>
-</div>
-
-<script>
-(() => {
-  const KEY = "warung_pricing_excel_model_v3";
-
-  // ---------- i18n ----------
-  const I18N = {
-    en: {
-      title: "Warung Pricing",
-      subtitle: "Excel-based model · manual product type · works offline",
-      langLabel: "Language",
-      tabs: { fix: "1) Fixed Costs", asumsi: "2) Assumptions", calc: "3) Calculator" },
-      buttons: { export: "JSON Export", import: "JSON Import", save: "Save" },
-      saved: "Saved ✅",
-      cards: { fixed: "Monthly Fixed Costs", asumsi: "Main Assumptions (Excel)", calc: "Calculator (Manual Type)", breakdown: "Breakdown" },
-      labels: {
-        sewa: "Rent (warung) / month",
-        tenaga: "Own labor (calculation) / month",
-        listrik: "Electricity & water / month",
-        internet: "Internet / QRIS / month",
-        transport: "Transport / month",
-        lain: "Other / losses / month",
-
-        penjualan: "Sales (units/month total)",
-        faktorDus: "Fixed-cost share for Dus (factor)",
-        tetapGalon: "Fixed cost per Galon (IDR/sale)",
-        varMinuman: "Variable beverage cost (IDR)",
-        susutMinuman: "Shrinkage beverage (%)",
-        susutDus: "Shrinkage Dus (%)",
-        susutBuah: "Shrinkage fruit/veg (%)",
-        susutInstant: "Shrinkage instant food (%)",
-        cuciGalon: "Wash/shrink Galon (IDR)",
-        antarGalon: "Delivery Galon (IDR)",
-        round: "Rounding (IDR) 0 / 500 / 1000",
-
-        type: "Product type",
-        ek: "Purchase price (EK) IDR"
-      },
-      kpis: {
-        totalFixed: "Total fixed costs / month",
-        fixedPerUnit: "Fixed cost per unit (auto)",
-        fixedPerDus: "Fixed cost per Dus transaction (auto)"
-      },
-      types: {
-        minuman: "Beverage (single sale)",
-        dus: "Dus / Carton (Dus transaction)",
-        buah: "Fruit / Vegetables",
-        instant: "Instant food (Tryfood/Indomie)",
-        galon: "Galon"
-      },
-      calcBtn: "Calculate",
-      enterEK: "Please enter EK."
-    },
-
-    id: {
-      title: "Kalkulator Harga Warung",
-      subtitle: "Model Excel · pilih tipe manual · bisa offline",
-      langLabel: "Bahasa",
-      tabs: { fix: "1) Biaya Tetap", asumsi: "2) Asumsi", calc: "3) Kalkulator" },
-      buttons: { export: "Export JSON", import: "Import JSON", save: "Simpan" },
-      saved: "Tersimpan ✅",
-      cards: { fixed: "Biaya Tetap (bulanan)", asumsi: "Asumsi Utama (Excel)", calc: "Kalkulator (Pilih Tipe Manual)", breakdown: "Rincian" },
-      labels: {
-        sewa: "Sewa (warung) / bulan",
-        tenaga: "Tenaga kerja sendiri (kalkulasi) / bulan",
-        listrik: "Listrik & air / bulan",
-        internet: "Internet / QRIS / bulan",
-        transport: "Transport / bulan",
-        lain: "Lain-lain / kehilangan / bulan",
-
-        penjualan: "Penjualan (unit/bulan, total)",
-        faktorDus: "Porsi biaya tetap untuk Dus (faktor)",
-        tetapGalon: "Biaya tetap per Galon (IDR/penjualan)",
-        varMinuman: "Biaya variabel minuman (IDR)",
-        susutMinuman: "Susut minuman (%)",
-        susutDus: "Susut Dus (%)",
-        susutBuah: "Susut buah/sayur (%)",
-        susutInstant: "Susut makanan instan (%)",
-        cuciGalon: "Cuci / susut Galon (IDR)",
-        antarGalon: "Biaya antar Galon (IDR)",
-        round: "Rounding (IDR) 0 / 500 / 1000",
-
-        type: "Tipe produk",
-        ek: "Harga beli (EK) IDR"
-      },
-      kpis: {
-        totalFixed: "Total biaya tetap / bulan",
-        fixedPerUnit: "Biaya tetap per unit (otomatis)",
-        fixedPerDus: "Biaya tetap per transaksi Dus (otomatis)"
-      },
-      types: {
-        minuman: "Minuman (ecer)",
-        dus: "Dus / Karton (transaksi Dus)",
-        buah: "Buah / Sayur",
-        instant: "Makanan instan (Tryfood/Indomie)",
-        galon: "Galon"
-      },
-      calcBtn: "Hitung",
-      enterEK: "Mohon isi EK."
-    }
-  };
-
-  // ---------- Defaults (based on your sheet screenshot) ----------
-  const DEFAULT = {
-    lang: "id",
-    currency: "IDR",
-    lokasi: "Cibinong / Bogor",
-    asumsi: {
-      penjualan_unit_bulan: 2500,
-      faktor_dus: 0.35,
-      biaya_tetap_galon: 900,
-      biaya_variabel_minuman: 100,
-      susut_minuman_pct: 2.0,
-      susut_dus_pct: 1.0,
-      susut_buah_pct: 15.0,
-      susut_instant_pct: 2.0,      // NEW
-      cuci_susut_galon: 300,
-      biaya_antar_galon: 2000,
-      round_idr: 500
-    },
-    fixed: {
-      sewa_warung: 1500000,
-      tenaga_kerja_sendiri: 1500000,
-      listrik_air: 300000,
-      internet_qris: 150000,
-      transport: 400000,
-      lain_lain_kehilangan: 150000
-    }
-  };
-
-  let state = load();
-  let tab = "fix";
-
-  const tabsEl = document.getElementById("tabs");
-  const viewEl = document.getElementById("view");
-  const langSel = document.getElementById("langSel");
-
-  function t(){ return I18N[state.lang] || I18N.en; }
-
-  function load() {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (!raw) return structuredClone(DEFAULT);
-      const obj = JSON.parse(raw);
-      const merged = structuredClone(DEFAULT);
-      merged.lang = obj.lang || merged.lang;
-      merged.currency = obj.currency || merged.currency;
-      merged.lokasi = obj.lokasi || merged.lokasi;
-      merged.asumsi = { ...merged.asumsi, ...(obj.asumsi || {}) };
-      merged.fixed  = { ...merged.fixed,  ...(obj.fixed  || {}) };
-      return merged;
-    } catch {
-      return structuredClone(DEFAULT);
-    }
-  }
-
-  function save(showToast=true){
-    localStorage.setItem(KEY, JSON.stringify(state, null, 2));
-    if (showToast) toast(t().saved);
-  }
-
-  function toast(msg){
-    const title = document.getElementById("title");
-    const old = title.textContent;
-    title.textContent = msg;
-    setTimeout(()=>title.textContent=old, 900);
-  }
-
-  // IDR formatting (thousand dot)
-  function fmtIDR(n){
-    const x = Math.round(Number(n) || 0);
-    return x.toLocaleString("id-ID"); // uses dot thousands
-  }
-  function digitsOnly(s){ return String(s||"").replace(/[^\d]/g,""); }
-  function num(v, fallback=0){
-    const x = Number(String(v).replace(",", "."));
-    return Number.isFinite(x) ? x : fallback;
-  }
-
-  function sumFixed(){
-    return Object.values(state.fixed).reduce((a,b)=>a + (Number(b)||0), 0);
-  }
-  function fixedPerUnit(){
-    const units = Math.max(1, Math.floor(Number(state.asumsi.penjualan_unit_bulan)||1));
-    return sumFixed()/units;
-  }
-  function fixedPerDusTx(){
-    return fixedPerUnit() * (Number(state.asumsi.faktor_dus)||0);
-  }
-  function roundIDR(x){
-    const r = Math.max(0, Math.floor(Number(state.asumsi.round_idr)||0));
-    if (!r) return x;
-    return Math.ceil(x/r)*r;
-  }
-
-  // ---------- Rendering ----------
-  function renderHeader(){
-    document.getElementById("title").textContent = t().title;
-    document.getElementById("subtitle").textContent = `${t().subtitle} · ${state.lokasi}`;
-    document.getElementById("langLabel").textContent = t().langLabel;
-
-    document.getElementById("exportBtn").textContent = t().buttons.export;
-    document.getElementById("importBtn").textContent = t().buttons.import;
-    document.getElementById("saveBtn").textContent = t().buttons.save;
-
-    langSel.value = state.lang;
-  }
-
-  function renderTabs(){
-    tabsEl.innerHTML = "";
-    const defs = [
-      {id:"fix", label: t().tabs.fix},
-      {id:"asumsi", label: t().tabs.asumsi},
-      {id:"calc", label: t().tabs.calc}
-    ];
-    defs.forEach(d=>{
-      const b = document.createElement("button");
-      b.className = "tab" + (tab===d.id ? " active" : "");
-      b.textContent = d.label;
-      b.onclick = ()=>{ tab=d.id; render(); };
-      tabsEl.appendChild(b);
-    });
-  }
-
-  function card(title, subtitle=""){
-    const d = document.createElement("div");
-    d.className = "card";
-    d.innerHTML = `<b>${title}</b>${subtitle?`<div class="muted" style="margin-top:6px">${subtitle}</div>`:""}`;
-    return d;
-  }
-
-  function kpiPair(leftLabel, leftValue, rightLabel, rightValue){
-    const k = document.createElement("div");
-    k.className = "kpi";
-    k.innerHTML = `
-      <div class="box"><div class="muted">${leftLabel}</div><div class="big">${leftValue}</div></div>
-      <div class="box"><div class="muted">${rightLabel}</div><div class="big">${rightValue}</div></div>
-    `;
-    return k;
-  }
-
-  // --- Input builders (NO rerender on keystroke; format on blur)
-  function rowIDR(label, getValue, setValue){
-    const row = document.createElement("div");
-    row.className = "row";
-
-    const lab = document.createElement("label");
-    lab.textContent = label;
-
-    const inp = document.createElement("input");
-    inp.type = "text";
-    inp.inputMode = "numeric";
-    inp.pattern = "[0-9]*";
-    inp.value = fmtIDR(getValue());
-
-    // focus: show raw digits + select (desktop + mobile)
-    inp.addEventListener("focus", ()=>{
-      inp.value = digitsOnly(inp.value);
-      inp.select();
-    });
-    inp.addEventListener("click", ()=> inp.select());
-    inp.addEventListener("pointerdown", ()=> setTimeout(()=>{ try{inp.select();}catch{} },0));
-
-    // input: keep only digits, allow 0 and multi-digits
-    inp.addEventListener("input", ()=>{
-      const cleaned = digitsOnly(inp.value);
-      if (cleaned !== inp.value) inp.value = cleaned;
-      // do NOT re-render here
-    });
-
-    // blur: store numeric + format with thousand dots
-    inp.addEventListener("blur", ()=>{
-      const n = Number(digitsOnly(inp.value) || "0");
-      setValue(n);
-      inp.value = fmtIDR(n);
-      // update KPIs live without full rerender? simplest: rerender current tab
-      render(false);
-    });
-
-    row.appendChild(lab);
-    row.appendChild(inp);
-    return row;
-  }
-
-  function rowPCT(label, getValue, setValue){
-    const row = document.createElement("div");
-    row.className = "row";
-
-    const lab = document.createElement("label");
-    lab.textContent = label;
-
-    const inp = document.createElement("input");
-    inp.type = "number";
-    inp.inputMode = "decimal";
-    inp.step = "0.1";
-    inp.min = "0";
-    inp.value = String(getValue());
-
-    inp.addEventListener("focus", ()=> inp.select());
-    inp.addEventListener("click", ()=> inp.select());
-    inp.addEventListener("pointerdown", ()=> setTimeout(()=>{ try{inp.select();}catch{} },0));
-
-    // on input: do not rerender
-    inp.addEventListener("input", ()=>{});
-
-    inp.addEventListener("blur", ()=>{
-      const v = Math.max(0, num(inp.value, 0));
-      setValue(v);
-      inp.value = String(v);
-      render(false);
-    });
-
-    row.appendChild(lab);
-    row.appendChild(inp);
-    return row;
-  }
-
-  function renderFix(){
-    const c = card(t().cards.fixed);
-
-    c.appendChild(rowIDR(t().labels.sewa, ()=>state.fixed.sewa_warung, v=>state.fixed.sewa_warung=v));
-    c.appendChild(rowIDR(t().labels.tenaga, ()=>state.fixed.tenaga_kerja_sendiri, v=>state.fixed.tenaga_kerja_sendiri=v));
-    c.appendChild(rowIDR(t().labels.listrik, ()=>state.fixed.listrik_air, v=>state.fixed.listrik_air=v));
-    c.appendChild(rowIDR(t().labels.internet, ()=>state.fixed.internet_qris, v=>state.fixed.internet_qris=v));
-    c.appendChild(rowIDR(t().labels.transport, ()=>state.fixed.transport, v=>state.fixed.transport=v));
-    c.appendChild(rowIDR(t().labels.lain, ()=>state.fixed.lain_lain_kehilangan, v=>state.fixed.lain_lain_kehilangan=v));
-
-    c.appendChild(kpiPair(
-      t().kpis.totalFixed, `${fmtIDR(sumFixed())} ${state.currency}`,
-      t().kpis.fixedPerUnit, `${fmtIDR(fixedPerUnit())} ${state.currency}`
-    ));
-
-    viewEl.appendChild(c);
-  }
-
-  function renderAsumsi(){
-    const c = card(t().cards.asumsi);
-
-    c.appendChild(rowIDR(t().labels.penjualan, ()=>state.asumsi.penjualan_unit_bulan, v=>state.asumsi.penjualan_unit_bulan=Math.max(1, v)));
-    // faktor dus is decimal (not percent in your sheet; it's a factor like 0.35)
-    c.appendChild(rowPCT(t().labels.faktorDus, ()=>state.asumsi.faktor_dus, v=>state.asumsi.faktor_dus=v));
-
-    c.appendChild(rowIDR(t().labels.tetapGalon, ()=>state.asumsi.biaya_tetap_galon, v=>state.asumsi.biaya_tetap_galon=v));
-    c.appendChild(rowIDR(t().labels.varMinuman, ()=>state.asumsi.biaya_variabel_minuman, v=>state.asumsi.biaya_variabel_minuman=v));
-
-    c.appendChild(rowPCT(t().labels.susutMinuman, ()=>state.asumsi.susut_minuman_pct, v=>state.asumsi.susut_minuman_pct=v));
-    c.appendChild(rowPCT(t().labels.susutDus, ()=>state.asumsi.susut_dus_pct, v=>state.asumsi.susut_dus_pct=v));
-    c.appendChild(rowPCT(t().labels.susutBuah, ()=>state.asumsi.susut_buah_pct, v=>state.asumsi.susut_buah_pct=v));
-    c.appendChild(rowPCT(t().labels.susutInstant, ()=>state.asumsi.susut_instant_pct, v=>state.asumsi.susut_instant_pct=v)); // NEW
-
-    c.appendChild(rowIDR(t().labels.cuciGalon, ()=>state.asumsi.cuci_susut_galon, v=>state.asumsi.cuci_susut_galon=v));
-    c.appendChild(rowIDR(t().labels.antarGalon, ()=>state.asumsi.biaya_antar_galon, v=>state.asumsi.biaya_antar_galon=v));
-
-    c.appendChild(rowIDR(t().labels.round, ()=>state.asumsi.round_idr, v=>state.asumsi.round_idr=v));
-
-    c.appendChild(kpiPair(
-      t().kpis.fixedPerUnit, `${fmtIDR(fixedPerUnit())} ${state.currency}`,
-      t().kpis.fixedPerDus, `${fmtIDR(fixedPerDusTx())} ${state.currency}`
-    ));
-
-    viewEl.appendChild(c);
-  }
-
-  function renderCalc(){
-    const c = card(t().cards.calc);
-
-    const typeRow = document.createElement("div");
-    typeRow.className = "row";
-    const typeLabel = document.createElement("label");
-    typeLabel.textContent = t().labels.type;
-
-    const typeSel = document.createElement("select");
-    typeSel.innerHTML = `
-      <option value="minuman">${t().types.minuman}</option>
-      <option value="dus">${t().types.dus}</option>
-      <option value="buah">${t().types.buah}</option>
-      <option value="instant">${t().types.instant}</option>
-      <option value="galon">${t().types.galon}</option>
-    `;
-    typeRow.appendChild(typeLabel);
-    typeRow.appendChild(typeSel);
-
-    const ekRow = document.createElement("div");
-    ekRow.className = "row";
-    const ekLabel = document.createElement("label");
-    ekLabel.textContent = t().labels.ek;
-
-    const ekInp = document.createElement("input");
-    ekInp.type = "text";
-    ekInp.inputMode = "numeric";
-    ekInp.pattern = "[0-9]*";
-    ekInp.value = "";
-    ekInp.placeholder = "0";
-
-    ekInp.addEventListener("focus", ()=>{
-      ekInp.value = digitsOnly(ekInp.value);
-      ekInp.select();
-    });
-    ekInp.addEventListener("input", ()=>{
-      const cleaned = digitsOnly(ekInp.value);
-      if (cleaned !== ekInp.value) ekInp.value = cleaned;
-    });
-    ekInp.addEventListener("blur", ()=>{
-      const n = Number(digitsOnly(ekInp.value)||"0");
-      ekInp.value = n ? fmtIDR(n) : "";
-    });
-
-    ekRow.appendChild(ekLabel);
-    ekRow.appendChild(ekInp);
-
-    const btn = document.createElement("button");
-    btn.className = "primary";
-    btn.textContent = t().calcBtn;
-
-    const out = document.createElement("div");
-    out.className = "card";
-    out.innerHTML = `<div class="muted">${t().cards.breakdown}</div>`;
-
-    btn.onclick = () => {
-      const EK = Number(digitsOnly(ekInp.value)||"0");
-      if (!EK) { out.innerHTML = `<div class="muted">${t().enterEK}</div>`; return; }
-
-      const type = typeSel.value;
-
-      let susutPct = 0;
-      let fixed = 0;
-      let extra = 0;
-
-      if (type === "minuman") {
-        susutPct = (Number(state.asumsi.susut_minuman_pct)||0) / 100;
-        fixed = fixedPerUnit();
-        extra = Number(state.asumsi.biaya_variabel_minuman)||0;
-      } else if (type === "dus") {
-        susutPct = (Number(state.asumsi.susut_dus_pct)||0) / 100;
-        fixed = fixedPerDusTx();
-      } else if (type === "buah") {
-        susutPct = (Number(state.asumsi.susut_buah_pct)||0) / 100;
-        fixed = fixedPerUnit();
-      } else if (type === "instant") {
-        susutPct = (Number(state.asumsi.susut_instant_pct)||0) / 100;
-        fixed = fixedPerUnit();
-      } else if (type === "galon") {
-        susutPct = 0;
-        fixed = Number(state.asumsi.biaya_tetap_galon)||0;
-        extra = (Number(state.asumsi.cuci_susut_galon)||0) + (Number(state.asumsi.biaya_antar_galon)||0);
-      }
-
-      const susut = EK * susutPct;
-      const minPrice = EK + susut + fixed + extra;
-      const suggested = roundIDR(minPrice);
-
-      out.innerHTML = `
-        <div class="kpi">
-          <div class="box">
-            <div class="muted">${state.lang==="id" ? "Harga minimum" : "Minimum price"}</div>
-            <div class="big">${fmtIDR(minPrice)} <span class="muted">${state.currency}</span></div>
-          </div>
-          <div class="box">
-            <div class="muted">${state.lang==="id" ? "Saran (dibulatkan)" : "Suggested (rounded)"}</div>
-            <div class="big">${fmtIDR(suggested)} <span class="muted">${state.currency}</span></div>
+    <!-- FIX COSTS -->
+    <section class="card" id="pageFix">
+      <div class="grid">
+        <div class="col-12">
+          <div class="small" id="fixExpl">
+            We compute a smooth Fix-Cost-% from the purchase price: basis × (1 + factor × ln(price/reference + 1)), then clamp to min/max.
           </div>
         </div>
-        <div class="hr"></div>
-        <div class="muted">${t().cards.breakdown}</div>
-        <div>EK: <b>${fmtIDR(EK)}</b></div>
-        <div>Susut: <b>${fmtIDR(susut)}</b> (${(susutPct*100).toFixed(2)}%)</div>
-        <div>Fixed: <b>${fmtIDR(fixed)}</b></div>
-        <div>Extra: <b>${fmtIDR(extra)}</b></div>
-      `;
-    };
 
-    c.appendChild(typeRow);
-    c.appendChild(ekRow);
-    c.appendChild(btn);
+        <div class="col-3">
+          <label id="lblBasis">Basis Fix Cost %</label>
+          <input class="field num" id="basisPct" inputmode="decimal" placeholder="10" />
+          <div class="hint" id="hintBasis">Example: 10 means 10%.</div>
+        </div>
 
-    viewEl.appendChild(c);
-    viewEl.appendChild(out);
+        <div class="col-3">
+          <label id="lblRef">Reference Purchase (IDR)</label>
+          <input class="field num" id="refPrice" inputmode="numeric" placeholder="10.000" />
+          <div class="hint" id="hintRef">Typical average purchase price.</div>
+        </div>
+
+        <div class="col-3">
+          <label id="lblFactor">Progression factor</label>
+          <input class="field num" id="progFactor" inputmode="decimal" placeholder="0,3" />
+          <div class="hint" id="hintFactor">How strong % grows with price.</div>
+        </div>
+
+        <div class="col-3">
+          <label id="lblMin">Fix Cost min %</label>
+          <input class="field num" id="minPct" inputmode="decimal" placeholder="6" />
+          <div class="hint" id="hintMin">Lower clamp.</div>
+        </div>
+
+        <div class="col-3">
+          <label id="lblMax">Fix Cost max %</label>
+          <input class="field num" id="maxPct" inputmode="decimal" placeholder="15" />
+          <div class="hint" id="hintMax">Upper clamp.</div>
+        </div>
+
+        <div class="col-9">
+          <div class="kpi">
+            <div class="t" id="kpiTitle">Quick test (enter a purchase price)</div>
+            <div class="row" style="align-items:center; gap:12px;">
+              <input class="field num" id="testPurchase" inputmode="numeric" placeholder="30.000" style="max-width:220px;" />
+              <div class="v mono" id="kpiResult">—</div>
+              <div class="small" id="kpiFormula">Fix% = basis × (1 + factor × ln(price/ref + 1)) → clamp</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="hr"></div>
+          <div class="row">
+            <button class="primary" id="saveFixBtn">Save</button>
+            <button id="loadFixBtn">Load saved</button>
+            <span class="small" id="saveHint">Saved to your browser (localStorage). You can overwrite anytime.</span>
+          </div>
+          <div class="toast" id="toastFix">Saved.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ASSUMPTIONS -->
+    <section class="card" id="pageAssum" style="display:none;">
+      <div class="grid">
+        <div class="col-4">
+          <label id="lblLoss">Loss / shrinkage %</label>
+          <input class="field num" id="lossPct" inputmode="decimal" placeholder="2" />
+          <div class="hint" id="hintLoss">Product loss / spoilage.</div>
+        </div>
+        <div class="col-4">
+          <label id="lblMargin">Target margin %</label>
+          <input class="field num" id="marginPct" inputmode="decimal" placeholder="20" />
+          <div class="hint" id="hintMargin">Your desired gross margin.</div>
+        </div>
+        <div class="col-4">
+          <label id="lblTax">Tax / misc % (optional)</label>
+          <input class="field num" id="taxPct" inputmode="decimal" placeholder="0" />
+          <div class="hint" id="hintTax">Optional extra %.</div>
+        </div>
+
+        <div class="col-12">
+          <div class="hr"></div>
+          <div class="row">
+            <button class="primary" id="saveAssBtn">Save</button>
+            <button id="loadAssBtn">Load saved</button>
+            <span class="small" id="assHint">Saved to your browser. Editable anytime.</span>
+          </div>
+          <div class="toast" id="toastAss">Saved.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CALCULATOR -->
+    <section class="card" id="pageCalc" style="display:none;">
+      <div class="grid">
+        <div class="col-4">
+          <label id="lblCategory">Category</label>
+          <select class="field" id="category">
+            <option value="beverage">Beverage / Minuman</option>
+            <option value="fresh">Fresh food / Segar</option>
+            <option value="snack">Snack</option>
+            <option value="staple">Staples (Rice, sugar) / Sembako</option>
+            <option value="dryfood">Dryfood / Indomie etc</option>
+            <option value="other">Other</option>
+          </select>
+          <div class="hint" id="hintCat">Category is for filtering later (optional).</div>
+        </div>
+
+        <div class="col-4">
+          <label id="lblPurchase">Purchase price (IDR)</label>
+          <input class="field num" id="purchasePrice" inputmode="numeric" placeholder="10.000" />
+          <div class="hint" id="hintPurchase">Supplier price (COGS).</div>
+        </div>
+
+        <div class="col-4">
+          <label id="lblCompetitor">Competitor price (IDR, optional)</label>
+          <input class="field num" id="competitorPrice" inputmode="numeric" placeholder="—" />
+          <div class="hint" id="hintCompetitor">If you want to compare.</div>
+        </div>
+
+        <div class="col-12">
+          <div class="hr"></div>
+        </div>
+
+        <div class="col-3">
+          <div class="kpi">
+            <div class="v mono" id="outFixPct">—</div>
+            <div class="t" id="outFixPctT">Fix cost % (dynamic)</div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="kpi">
+            <div class="v mono" id="outLossPct">—</div>
+            <div class="t" id="outLossPctT">Loss %</div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="kpi">
+            <div class="v mono" id="outMarginPct">—</div>
+            <div class="t" id="outMarginPctT">Target margin %</div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="kpi">
+            <div class="v mono" id="outMinPrice">—</div>
+            <div class="t" id="outMinPriceT">Minimum selling price</div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="small" id="calcNote">
+            Formula: Minimum Price = Purchase / (1 - (Fix% + Loss% + Tax% + Margin%)).
+            If competitor is lower, you can decide to reduce margin (not automatic).
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="small" style="margin-top:12px;">
+      <span id="footerNote">Tip: Tap/click a number field to edit raw digits; it formats with dots when you leave the field.</span>
+    </div>
+  </div>
+
+<script>
+/** ---------- Helpers: formatting & parsing (IDR with thousand dot) ---------- */
+function formatIDRInt(n){
+  if (!isFinite(n)) return "";
+  const s = Math.round(n).toString();
+  return s.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+// Allows "10.000", "10,000", "10000", "0", etc.
+function parseNumberLoose(str){
+  if (str == null) return NaN;
+  const cleaned = String(str).trim()
+    .replace(/\s+/g,"")
+    .replace(/\./g,"")      // remove thousand dots
+    .replace(/,/g,".");     // decimal comma -> dot
+  if (cleaned === "") return NaN;
+  const n = Number(cleaned);
+  return isFinite(n) ? n : NaN;
+}
+// Percent input like "10" => 0.10
+function pctToUnit(pct){ return pct / 100; }
+function unitToPct(unit){ return unit * 100; }
+
+/** ---------- Dynamic Fix% (Variant B: smooth curve) ---------- */
+function dynamicFixPctUnit(purchase, basisUnit, ref, factor, minUnit, maxUnit){
+  if (!(purchase > 0) || !(ref > 0) || !isFinite(factor) || !isFinite(basisUnit)) return NaN;
+  const raw = basisUnit * (1 + factor * Math.log(purchase / ref + 1));
+  const clamped = Math.min(maxUnit, Math.max(minUnit, raw));
+  return clamped;
+}
+
+/** ---------- Storage ---------- */
+const KEYS = {
+  fix: "pricing_tool_fix_v2",
+  assum: "pricing_tool_assum_v2",
+  lang: "pricing_tool_lang_v2",
+};
+function saveJSON(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
+function loadJSON(key){
+  try{ return JSON.parse(localStorage.getItem(key) || "null"); }
+  catch(e){ return null; }
+}
+
+/** ---------- UI: language ---------- */
+const I18N = {
+  en: {
+    subtitle: "Dynamic fix cost % based on purchase price (smooth curve, no jumps).",
+    langLabel:"Language",
+    tabFix:"Fix Costs",
+    tabAssum:"Assumptions",
+    tabCalc:"Calculator",
+    reset:"Reset",
+
+    fixExpl:"We compute a smooth Fix-Cost-% from the purchase price: basis × (1 + factor × ln(price/reference + 1)), then clamp to min/max.",
+    lblBasis:"Basis Fix Cost %",
+    hintBasis:"Example: 10 means 10%.",
+    lblRef:"Reference Purchase (IDR)",
+    hintRef:"Typical average purchase price.",
+    lblFactor:"Progression factor",
+    hintFactor:"How strong % grows with price.",
+    lblMin:"Fix Cost min %",
+    hintMin:"Lower clamp.",
+    lblMax:"Fix Cost max %",
+    hintMax:"Upper clamp.",
+    kpiTitle:"Quick test (enter a purchase price)",
+    kpiFormula:"Fix% = basis × (1 + factor × ln(price/ref + 1)) → clamp",
+    save:"Save",
+    load:"Load saved",
+    saveHint:"Saved to your browser (localStorage). You can overwrite anytime.",
+    saved:"Saved.",
+
+    lblLoss:"Loss / shrinkage %",
+    hintLoss:"Product loss / spoilage.",
+    lblMargin:"Target margin %",
+    hintMargin:"Your desired gross margin.",
+    lblTax:"Tax / misc % (optional)",
+    hintTax:"Optional extra %.",
+    assHint:"Saved to your browser. Editable anytime.",
+
+    lblCategory:"Category",
+    hintCat:"Category is for filtering later (optional).",
+    lblPurchase:"Purchase price (IDR)",
+    hintPurchase:"Supplier price (COGS).",
+    lblCompetitor:"Competitor price (IDR, optional)",
+    hintCompetitor:"If you want to compare.",
+    outFixPctT:"Fix cost % (dynamic)",
+    outLossPctT:"Loss %",
+    outMarginPctT:"Target margin %",
+    outMinPriceT:"Minimum selling price",
+    calcNote:"Formula: Minimum Price = Purchase / (1 - (Fix% + Loss% + Tax% + Margin%)). If competitor is lower, you can decide to reduce margin (not automatic).",
+    footerNote:"Tip: Tap/click a number field to edit raw digits; it formats with dots when you leave the field.",
+  },
+  id: {
+    subtitle: "Persentase biaya tetap dihitung dinamis dari harga beli (kurva halus, tanpa loncatan).",
+    langLabel:"Bahasa",
+    tabFix:"Biaya Tetap",
+    tabAssum:"Asumsi",
+    tabCalc:"Kalkulator",
+    reset:"Reset",
+
+    fixExpl:"Kami hitung % Biaya Tetap secara halus dari harga beli: basis × (1 + faktor × ln(harga/referensi + 1)), lalu dibatasi min/maks.",
+    lblBasis:"Basis % Biaya Tetap",
+    hintBasis:"Contoh: 10 artinya 10%.",
+    lblRef:"Harga Referensi (IDR)",
+    hintRef:"Rata-rata harga beli tipikal.",
+    lblFactor:"Faktor progresi",
+    hintFactor:"Seberapa kuat % naik saat harga naik.",
+    lblMin:"Min % Biaya Tetap",
+    hintMin:"Batas bawah.",
+    lblMax:"Maks % Biaya Tetap",
+    hintMax:"Batas atas.",
+    kpiTitle:"Tes cepat (isi harga beli)",
+    kpiFormula:"Fix% = basis × (1 + faktor × ln(harga/ref + 1)) → clamp",
+    save:"Simpan",
+    load:"Muat",
+    saveHint:"Disimpan di browser (localStorage). Bisa diubah kapan saja.",
+    saved:"Tersimpan.",
+
+    lblLoss:"Susut / rusak %",
+    hintLoss:"Kerusakan / kedaluwarsa.",
+    lblMargin:"Target margin %",
+    hintMargin:"Margin kotor yang diinginkan.",
+    lblTax:"Pajak / lain-lain % (opsional)",
+    hintTax:"Tambahan % opsional.",
+    assHint:"Disimpan di browser. Bisa diedit kapan saja.",
+
+    lblCategory:"Kategori",
+    hintCat:"Kategori untuk filter nanti (opsional).",
+    lblPurchase:"Harga beli (IDR)",
+    hintPurchase:"Harga dari supplier (HPP).",
+    lblCompetitor:"Harga pesaing (IDR, opsional)",
+    hintCompetitor:"Untuk perbandingan.",
+    outFixPctT:"% Biaya tetap (dinamis)",
+    outLossPctT:"% Susut",
+    outMarginPctT:"% Margin target",
+    outMinPriceT:"Harga jual minimum",
+    calcNote:"Rumus: Harga Minimum = Harga Beli / (1 - (Fix% + Susut% + Pajak% + Margin%)). Jika pesaing lebih rendah, Anda bisa turunkan margin (tidak otomatis).",
+    footerNote:"Tip: Klik/ketuk angka untuk edit mentah; akan diformat pakai titik saat keluar dari field.",
   }
+};
 
-  function render(withHeader=true){
-    if (withHeader) renderHeader();
-    renderTabs();
-    viewEl.innerHTML = "";
-    if (tab==="fix") renderFix();
-    if (tab==="asumsi") renderAsumsi();
-    if (tab==="calc") renderCalc();
+/** ---------- Elements ---------- */
+const el = (id)=>document.getElementById(id);
+const pages = { fix: el("pageFix"), assum: el("pageAssum"), calc: el("pageCalc") };
+
+/** ---------- Numeric input behavior (fixes the 'can't type 0' issue) ----------
+  - On focus: show raw unformatted number (no thousand dots) so typing is easy.
+  - On blur: format integer fields with dots; keep decimals for % / factor.
+*/
+function attachNumericBehavior(){
+  const numInputs = document.querySelectorAll("input.num");
+  numInputs.forEach(inp=>{
+    inp.addEventListener("focus", ()=>{
+      // show raw
+      const n = parseNumberLoose(inp.value);
+      if (isFinite(n)) {
+        // keep decimals if user had decimals
+        const wantsDecimal = /[,\.]\d/.test(String(inp.value));
+        inp.value = wantsDecimal ? String(n).replace(".", ",") : String(Math.trunc(n));
+      }
+    });
+
+    inp.addEventListener("blur", ()=>{
+      const id = inp.id;
+      const n = parseNumberLoose(inp.value);
+      if (!isFinite(n)) { inp.value=""; updateAll(); return; }
+
+      // Decide formatting type: IDR integer vs percent/decimal
+      const isIDR = ["refPrice","testPurchase","purchasePrice","competitorPrice"].includes(id);
+      if (isIDR){
+        inp.value = formatIDRInt(n);
+      } else {
+        // show with comma for decimals in UI
+        // keep up to 2 decimals
+        const s = (Math.round(n*100)/100).toString().replace(".", ",");
+        inp.value = s;
+      }
+      updateAll();
+    });
+
+    inp.addEventListener("input", ()=>{
+      // do not auto-format while typing (prevents desktop typing bugs)
+      updateAll(true);
+    });
+  });
+}
+
+/** ---------- Tabs ---------- */
+document.querySelectorAll(".tab").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    const t = btn.dataset.tab;
+    Object.keys(pages).forEach(k=>pages[k].style.display = (k===t) ? "" : "none");
+  });
+});
+
+/** ---------- Save/Load ---------- */
+function showToast(id){
+  const t = el(id);
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1200);
+}
+el("saveFixBtn").addEventListener("click", ()=>{
+  const data = readFixInputs();
+  saveJSON(KEYS.fix, data);
+  showToast("toastFix");
+});
+el("loadFixBtn").addEventListener("click", ()=>{
+  const data = loadJSON(KEYS.fix);
+  if (data) writeFixInputs(data);
+  updateAll();
+});
+el("saveAssBtn").addEventListener("click", ()=>{
+  const data = readAssumInputs();
+  saveJSON(KEYS.assum, data);
+  showToast("toastAss");
+});
+el("loadAssBtn").addEventListener("click", ()=>{
+  const data = loadJSON(KEYS.assum);
+  if (data) writeAssumInputs(data);
+  updateAll();
+});
+
+el("resetBtn").addEventListener("click", ()=>{
+  localStorage.removeItem(KEYS.fix);
+  localStorage.removeItem(KEYS.assum);
+  // keep language
+  setDefaults();
+  updateAll();
+});
+
+/** ---------- Read/Write input state ---------- */
+function readFixInputs(){
+  return {
+    basisPct: parseNumberLoose(el("basisPct").value),    // in %
+    refPrice: parseNumberLoose(el("refPrice").value),    // IDR
+    progFactor: parseNumberLoose(el("progFactor").value),
+    minPct: parseNumberLoose(el("minPct").value),        // in %
+    maxPct: parseNumberLoose(el("maxPct").value)         // in %
+  };
+}
+function writeFixInputs(d){
+  if (isFinite(d.basisPct)) el("basisPct").value = String(d.basisPct).replace(".", ",");
+  if (isFinite(d.refPrice)) el("refPrice").value = formatIDRInt(d.refPrice);
+  if (isFinite(d.progFactor)) el("progFactor").value = String(d.progFactor).replace(".", ",");
+  if (isFinite(d.minPct)) el("minPct").value = String(d.minPct).replace(".", ",");
+  if (isFinite(d.maxPct)) el("maxPct").value = String(d.maxPct).replace(".", ",");
+}
+function readAssumInputs(){
+  return {
+    lossPct: parseNumberLoose(el("lossPct").value),
+    marginPct: parseNumberLoose(el("marginPct").value),
+    taxPct: parseNumberLoose(el("taxPct").value)
+  };
+}
+function writeAssumInputs(d){
+  if (isFinite(d.lossPct)) el("lossPct").value = String(d.lossPct).replace(".", ",");
+  if (isFinite(d.marginPct)) el("marginPct").value = String(d.marginPct).replace(".", ",");
+  if (isFinite(d.taxPct)) el("taxPct").value = String(d.taxPct).replace(".", ",");
+}
+
+/** ---------- Defaults ---------- */
+function setDefaults(){
+  // Fix costs defaults
+  el("basisPct").value = "10";
+  el("refPrice").value = "10.000";
+  el("progFactor").value = "0,3";
+  el("minPct").value = "6";
+  el("maxPct").value = "15";
+  el("testPurchase").value = "30.000";
+
+  // Assumptions defaults
+  el("lossPct").value = "2";
+  el("marginPct").value = "20";
+  el("taxPct").value = "0";
+
+  // Calculator defaults
+  el("purchasePrice").value = "10.000";
+  el("competitorPrice").value = "";
+}
+
+/** ---------- Main calc ---------- */
+function updateAll(isTyping=false){
+  // Fix inputs
+  const f = readFixInputs();
+  const basisU = pctToUnit(f.basisPct || 0);
+  const minU = pctToUnit(f.minPct || 0);
+  const maxU = pctToUnit(f.maxPct || 0);
+
+  // Fix KPI test
+  const testP = parseNumberLoose(el("testPurchase").value);
+  const fixTestU = dynamicFixPctUnit(testP, basisU, f.refPrice, f.progFactor || 0, minU, maxU);
+  el("kpiResult").textContent = isFinite(fixTestU)
+    ? (unitToPct(fixTestU).toFixed(1).replace(".", ",") + " %")
+    : "—";
+
+  // Assumptions
+  const a = readAssumInputs();
+  const lossU = pctToUnit(a.lossPct || 0);
+  const marginU = pctToUnit(a.marginPct || 0);
+  const taxU = pctToUnit(a.taxPct || 0);
+
+  // Calculator purchase
+  const purchase = parseNumberLoose(el("purchasePrice").value);
+  const fixU = dynamicFixPctUnit(purchase, basisU, f.refPrice, f.progFactor || 0, minU, maxU);
+
+  el("outFixPct").textContent = isFinite(fixU) ? (unitToPct(fixU).toFixed(1).replace(".", ",") + " %") : "—";
+  el("outLossPct").textContent = (unitToPct(lossU).toFixed(1).replace(".", ",") + " %");
+  el("outMarginPct").textContent = (unitToPct(marginU).toFixed(1).replace(".", ",") + " %");
+
+  // Minimum price formula
+  const totalU = (isFinite(fixU)?fixU:0) + lossU + taxU + marginU;
+  let minPrice = NaN;
+  if (purchase > 0 && totalU < 0.95){
+    minPrice = purchase / (1 - totalU);
   }
+  el("outMinPrice").textContent = isFinite(minPrice) ? formatIDRInt(minPrice) + " IDR" : "—";
+}
 
-  // ---------- buttons ----------
-  document.getElementById("saveBtn").onclick = () => save(true);
+/** ---------- Language apply ---------- */
+function applyLang(lang){
+  const t = I18N[lang] || I18N.en;
 
-  document.getElementById("exportBtn").onclick = async () => {
-    const json = JSON.stringify(state, null, 2);
-    try {
-      await navigator.clipboard.writeText(json);
-      toast("JSON ✅");
-    } catch {
-      prompt("JSON:", json);
-    }
-  };
+  el("subtitle").textContent = t.subtitle;
+  el("langLabel").textContent = t.langLabel;
+  el("tabFix").textContent = t.tabFix;
+  el("tabAssum").textContent = t.tabAssum;
+  el("tabCalc").textContent = t.tabCalc;
+  el("resetBtn").textContent = t.reset;
 
-  document.getElementById("importBtn").onclick = () => {
-    const txt = prompt("JSON:");
-    if (!txt) return;
-    try {
-      const obj = JSON.parse(txt);
-      const merged = structuredClone(DEFAULT);
-      merged.lang = obj.lang || merged.lang;
-      merged.currency = obj.currency || merged.currency;
-      merged.lokasi = obj.lokasi || merged.lokasi;
-      merged.asumsi = { ...merged.asumsi, ...(obj.asumsi || {}) };
-      merged.fixed  = { ...merged.fixed,  ...(obj.fixed  || {}) };
-      state = merged;
-      save(false);
-      render(true);
-      toast("Imported ✅");
-    } catch {
-      toast("Invalid JSON");
-    }
-  };
+  el("fixExpl").textContent = t.fixExpl;
+  el("lblBasis").textContent = t.lblBasis;
+  el("hintBasis").textContent = t.hintBasis;
+  el("lblRef").textContent = t.lblRef;
+  el("hintRef").textContent = t.hintRef;
+  el("lblFactor").textContent = t.lblFactor;
+  el("hintFactor").textContent = t.hintFactor;
+  el("lblMin").textContent = t.lblMin;
+  el("hintMin").textContent = t.hintMin;
+  el("lblMax").textContent = t.lblMax;
+  el("hintMax").textContent = t.hintMax;
+  el("kpiTitle").textContent = t.kpiTitle;
+  el("kpiFormula").textContent = t.kpiFormula;
 
-  // ---------- language ----------
-  langSel.addEventListener("change", ()=>{
-    state.lang = langSel.value;
-    save(false);
-    render(true);
+  el("saveFixBtn").textContent = t.save;
+  el("loadFixBtn").textContent = t.load;
+  el("saveHint").textContent = t.saveHint;
+  el("toastFix").textContent = t.saved;
+
+  el("lblLoss").textContent = t.lblLoss;
+  el("hintLoss").textContent = t.hintLoss;
+  el("lblMargin").textContent = t.lblMargin;
+  el("hintMargin").textContent = t.hintMargin;
+  el("lblTax").textContent = t.lblTax;
+  el("hintTax").textContent = t.hintTax;
+  el("saveAssBtn").textContent = t.save;
+  el("loadAssBtn").textContent = t.load;
+  el("assHint").textContent = t.assHint;
+  el("toastAss").textContent = t.saved;
+
+  el("lblCategory").textContent = t.lblCategory;
+  el("hintCat").textContent = t.hintCat;
+  el("lblPurchase").textContent = t.lblPurchase;
+  el("hintPurchase").textContent = t.hintPurchase;
+  el("lblCompetitor").textContent = t.lblCompetitor;
+  el("hintCompetitor").textContent = t.hintCompetitor;
+
+  el("outFixPctT").textContent = t.outFixPctT;
+  el("outLossPctT").textContent = t.outLossPctT;
+  el("outMarginPctT").textContent = t.outMarginPctT;
+  el("outMinPriceT").textContent = t.outMinPriceT;
+  el("calcNote").textContent = t.calcNote;
+  el("footerNote").textContent = t.footerNote;
+
+  saveJSON(KEYS.lang, {lang});
+}
+
+/** ---------- Init ---------- */
+(function init(){
+  attachNumericBehavior();
+
+  const langSaved = loadJSON(KEYS.lang);
+  const lang = (langSaved && langSaved.lang) ? langSaved.lang : "en";
+  el("langSelect").value = lang;
+  applyLang(lang);
+
+  const fixSaved = loadJSON(KEYS.fix);
+  const assSaved = loadJSON(KEYS.assum);
+
+  setDefaults();
+  if (fixSaved) writeFixInputs(fixSaved);
+  if (assSaved) writeAssumInputs(assSaved);
+
+  // update on any change
+  document.addEventListener("input", (e)=>{
+    const id = e.target && e.target.id;
+    if (!id) return;
+    if (["category"].includes(id)) updateAll();
   });
 
-  // Init
-  render(true);
+  el("langSelect").addEventListener("change", (e)=>{
+    applyLang(e.target.value);
+  });
+
+  updateAll();
 })();
 </script>
 </body>
