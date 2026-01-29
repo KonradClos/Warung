@@ -3,431 +3,224 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Warung Preisrechner (Excel-Modell)</title>
+  <title>Warung Preisrechner</title>
   <meta name="theme-color" content="#111827" />
   <style>
     :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-    body { margin: 0; background:#0b1220; color:#e5e7eb; }
-    header { padding: 14px 16px; background:#111827; position: sticky; top:0; border-bottom:1px solid #1f2937;}
-    h1 { font-size: 16px; margin:0; letter-spacing:.2px;}
+    body { margin:0; background:#0b1220; color:#e5e7eb; }
+    header { padding:14px 16px; background:#111827; border-bottom:1px solid #1f2937; }
+    h1 { margin:0; font-size:16px; }
     .muted { color:#94a3b8; font-size:12px; }
-    .tabs { display:flex; gap:8px; padding:10px 16px; background:#0b1220; position: sticky; top:52px; border-bottom:1px solid #1f2937; overflow:auto;}
-    .tab { border:1px solid #1f2937; background:#0f172a; color:#e5e7eb; padding:8px 10px; border-radius:999px; font-size:13px; cursor:pointer; white-space:nowrap;}
+    .tabs { display:flex; gap:8px; padding:10px 16px; border-bottom:1px solid #1f2937; overflow:auto; }
+    .tab { padding:8px 12px; border-radius:999px; border:1px solid #1f2937; background:#0f172a; color:#e5e7eb; cursor:pointer; }
     .tab.active { background:#2563eb; border-color:#2563eb; }
-    main { padding: 14px 16px 90px; max-width: 820px; margin: 0 auto; }
-    .card { background:#111827; border:1px solid #1f2937; border-radius:14px; padding:12px; margin: 12px 0; }
-    .row { display:grid; grid-template-columns: 1fr 190px; gap:10px; align-items:center; margin:10px 0; }
+    main { padding:16px 16px 90px; max-width:820px; margin:auto; }
+    .card { background:#111827; border:1px solid #1f2937; border-radius:14px; padding:12px; margin-bottom:12px; }
+    .row { display:grid; grid-template-columns:1fr 200px; gap:10px; align-items:center; margin:8px 0; }
     label { font-size:13px; color:#cbd5e1; }
     input, select, button {
-      width:100%; box-sizing:border-box;
-      padding:10px 10px; border-radius:10px;
+      width:100%; padding:10px; border-radius:10px;
       border:1px solid #334155; background:#0b1220; color:#e5e7eb;
       font-size:14px;
     }
     button { background:#1f2937; cursor:pointer; }
     button.primary { background:#2563eb; border-color:#2563eb; }
-    button.danger { background:#b91c1c; border-color:#b91c1c; }
-    .hr { height:1px; background:#1f2937; margin:12px 0; }
-    .kpi { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .kpi { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .kpi .box { background:#0b1220; border:1px solid #1f2937; padding:10px; border-radius:12px; }
-    .big { font-size:18px; font-weight:700; margin-top:2px;}
-    .footerbar { position:fixed; left:0; right:0; bottom:0; background:#111827; border-top:1px solid #1f2937; padding:10px 16px; display:flex; gap:10px; }
-    .footerbar button { flex:1; }
+    .big { font-size:18px; font-weight:700; }
+    .footer { position:fixed; bottom:0; left:0; right:0; background:#111827; border-top:1px solid #1f2937; padding:10px 16px; display:flex; gap:10px; }
+    .footer button { flex:1; }
+    .hr { height:1px; background:#1f2937; margin:12px 0; }
   </style>
 </head>
+
 <body>
-  <header>
-    <h1>Warung Preisrechner (Excel-Modell)</h1>
-    <div class="muted">Manuelle Auswahl: Minuman / Dus / Buah-Gemüse / Galon · Einstellungen bleiben gespeichert (JSON)</div>
-  </header>
+<header>
+  <h1>Warung Preisrechner</h1>
+  <div class="muted">Excel-Modell · manuelle Produkttyp-Auswahl · offlinefähig</div>
+</header>
 
-  <div class="tabs" id="tabs"></div>
-  <main id="view"></main>
+<div class="tabs" id="tabs"></div>
+<main id="view"></main>
 
-  <div class="footerbar">
-    <button id="btnExport">JSON Export</button>
-    <button id="btnImport">JSON Import</button>
-    <button class="primary" id="btnSave">Speichern</button>
-  </div>
+<div class="footer">
+  <button id="exportBtn">JSON Export</button>
+  <button id="importBtn">JSON Import</button>
+  <button class="primary" id="saveBtn">Speichern</button>
+</div>
 
 <script>
 (() => {
-  const STORAGE_KEY = "warung_pricing_excel_model_v1";
+  const KEY = "warung_pricing_v1";
 
-  // Defaults aus deinem Screenshot
-  const DEFAULTS = {
-    version: 1,
-    currency: "IDR",
-    lokasi: "Cibinong / Bogor",
-
-    // Asumsi Utama
+  const DEFAULT = {
     asumsi: {
       penjualan_unit_bulan: 2500,
-      porsi_biaya_tetap_dus: 0.35,     // Faktor
-      biaya_tetap_galon: 900,          // IDR / penjualan (manuell)
-      biaya_variabel_minuman: 100,     // IDR (manuell)
-      susut_minuman_pct: 2.0,
-      susut_dus_pct: 1.0,
-      susut_buah_pct: 15.0,
-      cuci_susut_galon: 300,           // IDR
-      biaya_antar_galon: 2000,         // IDR
-      round_idr: 500                   // optional
+      faktor_dus: 0.35,
+      biaya_tetap_galon: 900,
+      biaya_variabel_minuman: 100,
+      susut_minuman: 2,
+      susut_dus: 1,
+      susut_buah: 15,
+      cuci_galon: 300,
+      antar_galon: 2000,
+      round_idr: 500
     },
-
-    // Biaya Tetap (bulanan)
-    fixed_costs: {
-      sewa_warung: 1500000,
-      tenaga_kerja_sendiri: 1500000,
-      listrik_air: 300000,
-      internet_qris: 150000,
+    fixed: {
+      sewa: 1500000,
+      tenaga: 1500000,
+      listrik: 300000,
+      internet: 150000,
       transport: 400000,
-      lain_lain_kehilangan: 150000
+      lain: 150000
     }
   };
 
   let state = load();
-  let activeTab = "setup";
+  let tab = "fix";
 
   const TABS = [
-    { id: "setup", label: "1) Fixkosten" },
-    { id: "asumsi", label: "2) Asumsi Utama" },
-    { id: "calc", label: "3) Rechner" }
+    {id:"fix", label:"1) Fixkosten"},
+    {id:"asumsi", label:"2) Asumsi"},
+    {id:"calc", label:"3) Rechner"}
   ];
 
-  // --- Helpers
   function load() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return structuredClone(DEFAULTS);
-      const obj = JSON.parse(raw);
-      return merge(structuredClone(DEFAULTS), obj);
-    } catch { return structuredClone(DEFAULTS); }
-  }
-
-  function merge(def, obj) {
-    if (!obj || typeof obj !== "object") return def;
-    def.version = obj.version ?? def.version;
-    def.currency = obj.currency ?? def.currency;
-    def.lokasi = obj.lokasi ?? def.lokasi;
-    def.asumsi = { ...def.asumsi, ...(obj.asumsi || {}) };
-    def.fixed_costs = { ...def.fixed_costs, ...(obj.fixed_costs || {}) };
-    return def;
+    try { return Object.assign({}, DEFAULT, JSON.parse(localStorage.getItem(KEY))); }
+    catch { return structuredClone(DEFAULT); }
   }
 
   function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state, null, 2));
-    toast("Gespeichert ✅");
+    localStorage.setItem(KEY, JSON.stringify(state));
+    alert("Gespeichert");
   }
 
-  function num(v, fallback=0) {
-    const x = Number(String(v).replace(",", "."));
-    return Number.isFinite(x) ? x : fallback;
+  function num(v){ return Number(String(v).replace(/[^\d.]/g,""))||0; }
+  function idr(v){ return Math.round(v).toLocaleString("id-ID"); }
+
+  function totalFixed() {
+    return Object.values(state.fixed).reduce((a,b)=>a+num(b),0);
   }
 
-  function moneyIDR(x) {
-    const n = Math.round(x);
-    return n.toLocaleString("id-ID");
-  }
-
-  function sumFixed() {
-    return Object.values(state.fixed_costs).reduce((a,b)=>a + num(b,0), 0);
-  }
-
-  // Excel-Logik aus Screenshot:
-  // Biaya tetap per unit (otomatis) = total_biaya_tetap / penjualan_unit_bulan
   function fixedPerUnit() {
-    const units = Math.max(1, Math.floor(num(state.asumsi.penjualan_unit_bulan, 1)));
-    return sumFixed() / units;
+    return totalFixed() / Math.max(1, state.asumsi.penjualan_unit_bulan);
   }
 
-  // Biaya tetap per transaksi Dus (otomatis) = fixed_per_unit * porsi_faktor_dus
-  function fixedPerDusTx() {
-    return fixedPerUnit() * num(state.asumsi.porsi_biaya_tetap_dus, 0);
+  function fixedPerDus() {
+    return fixedPerUnit() * state.asumsi.faktor_dus;
   }
-
-  function roundIDR(x) {
-    const r = Math.max(0, Math.floor(num(state.asumsi.round_idr, 0)));
-    if (!r) return x;
-    return Math.ceil(x / r) * r;
-  }
-
-  function toast(msg) {
-    const h1 = document.querySelector("h1");
-    const old = h1.textContent;
-    h1.textContent = msg;
-    setTimeout(()=>{ h1.textContent = old; }, 900);
-  }
-
-  // --- UI
-  const tabsEl = document.getElementById("tabs");
-  const viewEl = document.getElementById("view");
-
-  document.getElementById("btnSave").onclick = save;
-
-  document.getElementById("btnExport").onclick = async () => {
-    const json = JSON.stringify(state, null, 2);
-    try { await navigator.clipboard.writeText(json); toast("JSON kopiert ✅"); }
-    catch { prompt("Kopiere JSON:", json); }
-  };
-
-  document.getElementById("btnImport").onclick = () => {
-    const txt = prompt("JSON einfügen (überschreibt Einstellungen):");
-    if (!txt) return;
-    try {
-      const obj = JSON.parse(txt);
-      state = merge(structuredClone(DEFAULTS), obj);
-      save();
-      render();
-    } catch { toast("Ungültiges JSON"); }
-  };
 
   function renderTabs() {
-    tabsEl.innerHTML = "";
-    TABS.forEach(t => {
-      const b = document.createElement("button");
-      b.className = "tab" + (t.id === activeTab ? " active" : "");
-      b.textContent = t.label;
-      b.onclick = () => { activeTab = t.id; render(); };
-      tabsEl.appendChild(b);
+    const t = document.getElementById("tabs");
+    t.innerHTML="";
+    TABS.forEach(x=>{
+      const b=document.createElement("button");
+      b.className="tab"+(tab===x.id?" active":"");
+      b.textContent=x.label;
+      b.onclick=()=>{tab=x.id; render();};
+      t.appendChild(b);
     });
   }
 
-  function card(title, html="") {
-    const d = document.createElement("div");
-    d.className = "card";
-    d.innerHTML = `<b>${title}</b><div style="margin-top:8px">${html}</div>`;
-    return d;
-  }
-
-  function rowInput(labelText, value, onChange, type="number", step="1") {
-    const row = document.createElement("div");
-    row.className = "row";
-    row.innerHTML = `
-      <label>${labelText}</label>
-      <input type="${type}" step="${step}" value="${value ?? ""}" />
+  function inputRow(label,val,onChange,isPct=false){
+    const r=document.createElement("div");
+    r.className="row";
+    r.innerHTML=`
+      <label>${label}</label>
+      <input
+        type="${isPct?"number":"text"}"
+        inputmode="${isPct?"decimal":"numeric"}"
+        pattern="${isPct?"":"[0-9]*"}"
+        step="${isPct?"0.1":"1"}"
+        data-autoselect="1"
+        value="${val}"
+      />
     `;
-    const inp = row.querySelector("input");
-    inp.oninput = () => onChange(inp.value);
-    return row;
+    const i=r.querySelector("input");
+    i.addEventListener("focus",()=>i.select());
+    i.addEventListener("input",()=>onChange(num(i.value)));
+    return r;
   }
 
-  function rowSelect(labelText, options, onChange) {
-    const row = document.createElement("div");
-    row.className = "row";
-    row.innerHTML = `<label>${labelText}</label><select></select>`;
-    const sel = row.querySelector("select");
-    options.forEach(o => {
-      const opt = document.createElement("option");
-      opt.value = o.value;
-      opt.textContent = o.label;
-      sel.appendChild(opt);
-    });
-    sel.onchange = () => onChange(sel.value);
-    return { row, sel };
+  function renderFix(){
+    const c=card("Biaya Tetap (bulanan)");
+    c.append(
+      inputRow("Sewa warung",state.fixed.sewa,v=>state.fixed.sewa=v),
+      inputRow("Tenaga kerja sendiri",state.fixed.tenaga,v=>state.fixed.tenaga=v),
+      inputRow("Listrik & air",state.fixed.listrik,v=>state.fixed.listrik=v),
+      inputRow("Internet / QRIS",state.fixed.internet,v=>state.fixed.internet=v),
+      inputRow("Transport",state.fixed.transport,v=>state.fixed.transport=v),
+      inputRow("Lain-lain / kehilangan",state.fixed.lain,v=>state.fixed.lain=v)
+    );
+    c.append(kpiBox("Total biaya tetap", idr(totalFixed())));
+    view.append(c);
   }
 
-  function render() {
-    renderTabs();
-    viewEl.innerHTML = "";
-    if (activeTab === "setup") renderSetup();
-    if (activeTab === "asumsi") renderAsumsi();
-    if (activeTab === "calc") renderCalc();
+  function renderAsumsi(){
+    const c=card("Asumsi Utama");
+    c.append(
+      inputRow("Penjualan (unit/bulan)",state.asumsi.penjualan_unit_bulan,v=>state.asumsi.penjualan_unit_bulan=v),
+      inputRow("Faktor biaya Dus",state.asumsi.faktor_dus,v=>state.asumsi.faktor_dus=v,true),
+      inputRow("Biaya tetap Galon",state.asumsi.biaya_tetap_galon,v=>state.asumsi.biaya_tetap_galon=v),
+      inputRow("Biaya variabel minuman",state.asumsi.biaya_variabel_minuman,v=>state.asumsi.biaya_variabel_minuman=v),
+      inputRow("Susut minuman %",state.asumsi.susut_minuman,v=>state.asumsi.susut_minuman=v,true),
+      inputRow("Susut Dus %",state.asumsi.susut_dus,v=>state.asumsi.susut_dus=v,true),
+      inputRow("Susut buah %",state.asumsi.susut_buah,v=>state.asumsi.susut_buah=v,true),
+      inputRow("Cuci Galon",state.asumsi.cuci_galon,v=>state.asumsi.cuci_galon=v),
+      inputRow("Antar Galon",state.asumsi.antar_galon,v=>state.asumsi.antar_galon=v)
+    );
+    c.append(kpiBox("Biaya tetap per unit",n(idr(fixedPerUnit()))));
+    view.append(c);
   }
 
-  function renderSetup() {
-    const c = card("Biaya Tetap (bulanan) – Einzelabfrage", `<div class="muted">Werte bleiben gespeichert. Total wird automatisch berechnet.</div><div class="hr"></div>`);
-    c.appendChild(rowInput("Sewa (warung) / IDR per bulan", state.fixed_costs.sewa_warung, v => { state.fixed_costs.sewa_warung = num(v,0); render(); }));
-    c.appendChild(rowInput("Tenaga kerja sendiri (kalkulasi) / IDR per bulan", state.fixed_costs.tenaga_kerja_sendiri, v => { state.fixed_costs.tenaga_kerja_sendiri = num(v,0); render(); }));
-    c.appendChild(rowInput("Listrik & air / IDR per bulan", state.fixed_costs.listrik_air, v => { state.fixed_costs.listrik_air = num(v,0); render(); }));
-    c.appendChild(rowInput("Internet / QRIS / IDR per bulan", state.fixed_costs.internet_qris, v => { state.fixed_costs.internet_qris = num(v,0); render(); }));
-    c.appendChild(rowInput("Transport (motor/bensin) / IDR per bulan", state.fixed_costs.transport, v => { state.fixed_costs.transport = num(v,0); render(); }));
-    c.appendChild(rowInput("Lain-lain / kehilangan / IDR per bulan", state.fixed_costs.lain_lain_kehilangan, v => { state.fixed_costs.lain_lain_kehilangan = num(v,0); render(); }));
-
-    const k = document.createElement("div");
-    k.className = "kpi";
-    k.innerHTML = `
-      <div class="box">
-        <div class="muted">Total biaya tetap / bulan</div>
-        <div class="big">${moneyIDR(sumFixed())} <span class="muted">${state.currency}</span></div>
-      </div>
-      <div class="box">
-        <div class="muted">Biaya tetap per unit (otomatis)</div>
-        <div class="big">${moneyIDR(fixedPerUnit())} <span class="muted">${state.currency}</span></div>
-      </div>
+  function renderCalc(){
+    const c=card("Rechner");
+    const sel=document.createElement("select");
+    sel.innerHTML=`
+      <option value="minuman">Minuman</option>
+      <option value="dus">Dus</option>
+      <option value="buah">Buah/Gemüse</option>
+      <option value="galon">Galon</option>
     `;
-    c.appendChild(k);
-    viewEl.appendChild(c);
-  }
+    const ek=document.createElement("input");
+    ek.type="text"; ek.inputMode="numeric"; ek.pattern="[0-9]*";
+    ek.placeholder="Harga beli (EK)";
+    const btn=document.createElement("button");
+    btn.className="primary"; btn.textContent="Hitung";
+    const out=document.createElement("div"); out.className="card";
 
-  function renderAsumsi() {
-    const a = card("Asumsi Utama (aus Excel)", `<div class="muted">Diese Werte steuern die Logik wie im Screenshot.</div><div class="hr"></div>`);
-
-    a.appendChild(rowInput("Penjualan (unit/bulan, total)", state.asumsi.penjualan_unit_bulan, v => { state.asumsi.penjualan_unit_bulan = Math.max(1, Math.floor(num(v,1))); render(); }));
-    a.appendChild(rowInput("Porsi biaya tetap untuk Dus (faktor)", state.asumsi.porsi_biaya_tetap_dus, v => { state.asumsi.porsi_biaya_tetap_dus = num(v,0); render(); }, "number", "0.01"));
-    a.appendChild(rowInput("Biaya tetap per Galon (IDR/penjualan)", state.asumsi.biaya_tetap_galon, v => { state.asumsi.biaya_tetap_galon = num(v,0); render(); }));
-
-    a.appendChild(rowInput("Biaya variabel minuman (IDR)", state.asumsi.biaya_variabel_minuman, v => { state.asumsi.biaya_variabel_minuman = num(v,0); render(); }));
-    a.appendChild(rowInput("Susut minuman (%)", state.asumsi.susut_minuman_pct, v => { state.asumsi.susut_minuman_pct = Math.max(0, num(v,0)); }, "number", "0.1"));
-    a.appendChild(rowInput("Susut Dus (%)", state.asumsi.susut_dus_pct, v => { state.asumsi.susut_dus_pct = Math.max(0, num(v,0)); }, "number", "0.1"));
-    a.appendChild(rowInput("Susut buah/gemüse (%)", state.asumsi.susut_buah_pct, v => { state.asumsi.susut_buah_pct = Math.max(0, num(v,0)); }, "number", "0.1"));
-
-    a.appendChild(rowInput("Cuci / susut Galon (IDR)", state.asumsi.cuci_susut_galon, v => { state.asumsi.cuci_susut_galon = num(v,0); }));
-    a.appendChild(rowInput("Biaya antar Galon (IDR)", state.asumsi.biaya_antar_galon, v => { state.asumsi.biaya_antar_galon = num(v,0); }));
-
-    a.appendChild(rowInput("Rundung (IDR) 0 / 500 / 1000", state.asumsi.round_idr, v => { state.asumsi.round_idr = Math.max(0, Math.floor(num(v,0))); }));
-
-    const k = document.createElement("div");
-    k.className = "kpi";
-    k.innerHTML = `
-      <div class="box">
-        <div class="muted">Biaya tetap per unit (otomatis)</div>
-        <div class="big">${moneyIDR(fixedPerUnit())} ${state.currency}</div>
-        <div class="muted">= Total biaya tetap / Penjualan unit/bulan</div>
-      </div>
-      <div class="box">
-        <div class="muted">Biaya tetap per transaksi Dus (otomatis)</div>
-        <div class="big">${moneyIDR(fixedPerDusTx())} ${state.currency}</div>
-        <div class="muted">= per unit × faktor Dus</div>
-      </div>
-    `;
-    a.appendChild(document.createElement("div")).className = "hr";
-    a.appendChild(k);
-
-    viewEl.appendChild(a);
-  }
-
-  function renderCalc() {
-    const c = card("Rechner – manuelle Produkttyp Auswahl", `
-      <div class="muted">Gib EK ein, wähle Typ. Tool addiert: Susut + Fixkostenanteil + ggf. Zuschläge (Minuman/Galon).</div>
-      <div class="hr"></div>
-    `);
-
-    const types = [
-      { value: "minuman", label: "Minuman (Einzelverkauf)" },
-      { value: "dus", label: "Dus / Karton (Transaksi Dus)" },
-      { value: "buah", label: "Buah / Gemüse" },
-      { value: "galon", label: "Galon" }
-    ];
-
-    let selectedType = "minuman";
-
-    const selWrap = rowSelect("Tipe Produk", types, v => { selectedType = v; updateHint(); });
-    c.appendChild(selWrap.row);
-
-    const ekRow = rowInput("Harga beli / EK (IDR)", "", () => {}, "number", "1");
-    const ekInp = ekRow.querySelector("input");
-    c.appendChild(ekRow);
-
-    const out = card("Hasil", `<div class="muted">Klicke “Hitung”.</div>`);
-
-    const hint = document.createElement("div");
-    hint.className = "card";
-    hint.innerHTML = `<b>Regeln (aus Excel)</b><div class="muted" id="hintText" style="margin-top:8px"></div>`;
-    viewEl.appendChild(c);
-    viewEl.appendChild(hint);
-
-    const btn = document.createElement("button");
-    btn.className = "primary";
-    btn.textContent = "Hitung";
-    btn.style.marginTop = "10px";
-    c.appendChild(btn);
-
-    viewEl.appendChild(out);
-
-    function updateHint() {
-      const h = document.getElementById("hintText");
-      const fpUnit = fixedPerUnit();
-      const fpDus = fixedPerDusTx();
-      const galonFix = num(state.asumsi.biaya_tetap_galon, 0);
-      if (!h) return;
-
-      if (selectedType === "minuman") {
-        h.innerHTML =
-          `Susut: ${state.asumsi.susut_minuman_pct}% · Fix: ${moneyIDR(fpUnit)} · + Biaya variabel minuman: ${moneyIDR(state.asumsi.biaya_variabel_minuman)} IDR`;
-      } else if (selectedType === "dus") {
-        h.innerHTML =
-          `Susut: ${state.asumsi.susut_dus_pct}% · Fix per transaksi Dus: ${moneyIDR(fpDus)} (per unit × faktor Dus)`;
-      } else if (selectedType === "buah") {
-        h.innerHTML =
-          `Susut: ${state.asumsi.susut_buah_pct}% · Fix: ${moneyIDR(fpUnit)} (wie per unit)`;
-      } else if (selectedType === "galon") {
-        h.innerHTML =
-          `Fix per Galon (Input): ${moneyIDR(galonFix)} · + Cuci/susut: ${moneyIDR(state.asumsi.cuci_susut_galon)} · + Antar: ${moneyIDR(state.asumsi.biaya_antar_galon)}`;
-      }
-    }
-
-    updateHint();
-
-    btn.onclick = () => {
-      const ek = Math.max(0, num(ekInp.value, 0));
-      if (!ek) { out.innerHTML = `<div class="muted">Bitte EK eingeben.</div>`; return; }
-
-      const fpUnit = fixedPerUnit();
-      const fpDus = fixedPerDusTx();
-      const round = (x) => roundIDR(x);
-
-      let susutPct = 0;
-      let fixed = 0;
-      let extra = 0;
-      let extraLabel = [];
-
-      if (selectedType === "minuman") {
-        susutPct = num(state.asumsi.susut_minuman_pct, 0) / 100;
-        fixed = fpUnit;
-        extra = num(state.asumsi.biaya_variabel_minuman, 0);
-        if (extra) extraLabel.push(`Biaya variabel minuman ${moneyIDR(extra)}`);
-      }
-
-      if (selectedType === "dus") {
-        susutPct = num(state.asumsi.susut_dus_pct, 0) / 100;
-        fixed = fpDus;
-      }
-
-      if (selectedType === "buah") {
-        susutPct = num(state.asumsi.susut_buah_pct, 0) / 100;
-        fixed = fpUnit;
-      }
-
-      if (selectedType === "galon") {
-        susutPct = 0; // im Screenshot gibt es Galon extra Kosten statt %
-        fixed = num(state.asumsi.biaya_tetap_galon, 0);
-        const cuci = num(state.asumsi.cuci_susut_galon, 0);
-        const antar = num(state.asumsi.biaya_antar_galon, 0);
-        extra = cuci + antar;
-        if (cuci) extraLabel.push(`Cuci/Susut ${moneyIDR(cuci)}`);
-        if (antar) extraLabel.push(`Antar ${moneyIDR(antar)}`);
-      }
-
-      const susut = ek * susutPct;
-
-      // Mindestpreis im Sinne eures Excel-Screens: EK + Susut + Fix + Zuschläge
-      const minPrice = ek + susut + fixed + extra;
-      const suggested = round(minPrice);
-
-      out.innerHTML = `
-        <div class="kpi">
-          <div class="box">
-            <div class="muted">Mindestpreis</div>
-            <div class="big">${moneyIDR(minPrice)} <span class="muted">${state.currency}</span></div>
-          </div>
-          <div class="box">
-            <div class="muted">Empfehlung (gerundet)</div>
-            <div class="big">${moneyIDR(suggested)} <span class="muted">${state.currency}</span></div>
-          </div>
-        </div>
-        <div class="hr"></div>
-        <div class="muted">Aufschlüsselung</div>
-        <div>EK: <b>${moneyIDR(ek)}</b></div>
-        <div>Susut: <b>${moneyIDR(susut)}</b> (${(susutPct*100).toFixed(2)}%)</div>
-        <div>Fix-Anteil: <b>${moneyIDR(fixed)}</b></div>
-        <div>Zuschläge: <b>${moneyIDR(extra)}</b> ${extraLabel.length ? `<span class="muted">(${extraLabel.join(" + ")})</span>` : ""}</div>
-      `;
+    btn.onclick=()=>{
+      const EK=num(ek.value);
+      let susut=0, fix=0, extra=0;
+      if(sel.value==="minuman"){susut=EK*state.asumsi.susut_minuman/100;fix=fixedPerUnit();extra=state.asumsi.biaya_variabel_minuman;}
+      if(sel.value==="dus"){susut=EK*state.asumsi.susut_dus/100;fix=fixedPerDus();}
+      if(sel.value==="buah"){susut=EK*state.asumsi.susut_buah/100;fix=fixedPerUnit();}
+      if(sel.value==="galon"){fix=state.asumsi.biaya_tetap_galon;extra=state.asumsi.cuci_galon+state.asumsi.antar_galon;}
+      const min=EK+susut+fix+extra;
+      out.innerHTML=`<div class="big">${idr(min)} IDR</div><div class="muted">EK ${idr(EK)} · Susut ${idr(susut)} · Fix ${idr(fix)} · Extra ${idr(extra)}</div>`;
     };
+
+    c.append(sel,ek,btn);
+    view.append(c,out);
   }
 
-  // init
-  render();
+  function card(t){const d=document.createElement("div");d.className="card";d.innerHTML=`<b>${t}</b>`;return d;}
+  function kpiBox(l,v){const d=document.createElement("div");d.className="card";d.innerHTML=`<div class="muted">${l}</div><div class="big">${v}</div>`;return d;}
 
+  const view=document.getElementById("view");
+  document.getElementById("saveBtn").onclick=save;
+  document.getElementById("exportBtn").onclick=()=>prompt("JSON",JSON.stringify(state,null,2));
+  document.getElementById("importBtn").onclick=()=>{const j=prompt("JSON einfügen"); if(j){state=JSON.parse(j); render();}};
+
+  function render(){
+    renderTabs();
+    view.innerHTML="";
+    if(tab==="fix") renderFix();
+    if(tab==="asumsi") renderAsumsi();
+    if(tab==="calc") renderCalc();
+  }
+
+  render();
 })();
 </script>
 </body>
